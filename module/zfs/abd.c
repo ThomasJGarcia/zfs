@@ -1253,7 +1253,11 @@ abd_sg_free_table(abd_t *abd)
  * Highmem is mainly for userdata, while non-highmem is mainly for metadata
  * which allow scatter ABD.
  */
+<<<<<<< e3817c50888a7eed5ee7b870b23cb7ee44ba56a3
 static abd_t *
+=======
+abd_t *
+>>>>>>> Add non-highmem scatter ABD
 __abd_alloc_scatter(size_t size, int highmem)
 {
 	abd_t *abd;
@@ -1264,6 +1268,7 @@ __abd_alloc_scatter(size_t size, int highmem)
 
 	abd = kmem_cache_alloc(abd_struct_cache, KM_PUSHPAGE);
 
+<<<<<<< e3817c50888a7eed5ee7b870b23cb7ee44ba56a3
 	abd_set_magic(abd);
 	abd->abd_flags = ABD_F_SCATTER|ABD_F_OWNER;
 	/*
@@ -1276,9 +1281,16 @@ __abd_alloc_scatter(size_t size, int highmem)
 		gfp_hmem = __GFP_HIGHMEM;
 	}
 #endif
+=======
+	abd->abd_magic = ARC_BUF_DATA_MAGIC;
+	abd->abd_flags = ABD_F_SCATTER|ABD_F_OWNER;
+	if (highmem)
+		abd->abd_flags |= ABD_F_HIGHMEM;
+>>>>>>> Add non-highmem scatter ABD
 	abd->abd_size = size;
 	abd->abd_offset = 0;
 
+<<<<<<< e3817c50888a7eed5ee7b870b23cb7ee44ba56a3
 	pages = kmem_alloc(sizeof (*pages) * n, KM_SLEEP);
 
 	/* If we aren't going for HIGHMEM, try to alloc contiguous pages. */
@@ -1294,6 +1306,15 @@ __abd_alloc_scatter(size_t size, int highmem)
 			size -= len;
 			for (; len > 0; len -= PAGESIZE, paddr += PAGESIZE, i++)
 				pages[i] = virt_to_page(paddr);
+=======
+	for_each_sg(abd->abd_sgl, sg, n, i) {
+retry:
+		page = alloc_page(GFP_NOIO|(highmem ? __GFP_HIGHMEM : 0));
+		if (unlikely(page == NULL)) {
+			set_current_state(TASK_INTERRUPTIBLE);
+			schedule_timeout(1);
+			goto retry;
+>>>>>>> Add non-highmem scatter ABD
 		}
 	}
 
