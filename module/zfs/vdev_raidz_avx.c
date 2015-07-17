@@ -24,11 +24,8 @@
  * Copyright (c) 2012, 2014 by Delphix. All rights reserved.
  */
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-
-#include "vdev_raidz.h"
+#include <sys/zio.h>
+#include <sys/vdev_raidz.h>
 
 void
 vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)

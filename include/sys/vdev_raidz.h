@@ -89,7 +89,7 @@ const uint8_t vdev_raidz_pow2[256];
 const uint8_t vdev_raidz_log2[256];
 
 uint8_t
-vdev_raidz_exp2(uint8_t a, int exp);
+vdev_raidz_exp2(uint_t a, int exp);
 
 void vdev_raidz_generate_parity_p_avx(raidz_map_t *rm);
 int vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts);
