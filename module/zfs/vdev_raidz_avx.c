@@ -35,6 +35,7 @@ vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)
 
     pcount = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
 
+    kfpu_begin();
     for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
         src = rm->rm_col[c].rc_data;
         p = rm->rm_col[VDEV_RAIDZ_P].rc_data;
@@ -107,6 +108,7 @@ vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)
             }
         }
     }
+    kfpu_end();
 }
 
 int
@@ -126,6 +128,7 @@ vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts)
 
     src = rm->rm_col[VDEV_RAIDZ_P].rc_data;
     dst = rm->rm_col[x].rc_data;
+    kfpu_begin();
     for (i = 0; i < xcount / 16; i++, src+=16, dst+=16) {
         asm("VMOVDQU (%[src]), %%ymm0\n"
             "VMOVDQU %%ymm0, (%[dst])\n"
@@ -200,6 +203,7 @@ vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts)
         }
     }
 
+    kfpu_end();
     return (1 << VDEV_RAIDZ_P);
 }
 
@@ -213,6 +217,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
     ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
     rm->rm_col[VDEV_RAIDZ_Q].rc_size);
 
+    kfpu_begin();
     for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
         src = rm->rm_col[c].rc_data;
         p = rm->rm_col[VDEV_RAIDZ_P].rc_data;
@@ -413,6 +418,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
             }
         }
     }
+    kfpu_end();
 }
 
 int
@@ -520,6 +526,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
     xcount = rm->rm_col[x].rc_size / sizeof (src[0]);
     ASSERT(xcount <= rm->rm_col[VDEV_RAIDZ_Q].rc_size / sizeof (src[0]));
 
+    kfpu_begin();
     for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
         src = rm->rm_col[c].rc_data;
         dst = rm->rm_col[x].rc_data;
@@ -686,6 +693,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
             }
         }
     }
+    kfpu_end();
 
     src = rm->rm_col[VDEV_RAIDZ_Q].rc_data;
     dst = rm->rm_col[x].rc_data;
@@ -713,6 +721,7 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
     ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
             rm->rm_col[VDEV_RAIDZ_R].rc_size);
 
+    kfpu_begin();
     for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
         src = rm->rm_col[c].rc_data;
         p = rm->rm_col[VDEV_RAIDZ_P].rc_data;
@@ -1034,4 +1043,5 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
             }
         }
     }
+    kfpu_end();
 }

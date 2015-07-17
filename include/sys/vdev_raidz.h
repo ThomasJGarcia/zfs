@@ -54,6 +54,18 @@
         VDEV_RAIDZ_64MUL_2((x), mask); \
 }
 
+#if defined(_KERNEL ) && defined(__x86_64__)
+#include <asm/i387.h>
+#endif
+
+#if defined(_KERNEL)
+#define kfpu_begin() kernel_fpu_begin()
+#define kfpu_end() kernel_fpu_end()
+#else
+#define kfpu_begin() ((void)0)
+#define kfpu_end() ((void)0)
+#endif
+
 typedef struct raidz_col {
     uint64_t rc_devidx;     /* child device index for I/O */
     uint64_t rc_offset;     /* device offset */
