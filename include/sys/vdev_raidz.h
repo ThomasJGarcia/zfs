@@ -27,8 +27,6 @@
 #ifndef _VDEV_RAIDZ_H
 #define _VDEV_RAIDZ_H
 
-#include <stdint.h>
-
 #define VDEV_RAIDZ_P        0
 #define VDEV_RAIDZ_Q        1
 #define VDEV_RAIDZ_R        2
@@ -85,8 +83,8 @@ typedef struct raidz_map {
 } raidz_map_t;
 
 
-const uint8_t vdev_raidz_pow2[256];
-const uint8_t vdev_raidz_log2[256];
+extern const uint8_t vdev_raidz_pow2[256];
+extern const uint8_t vdev_raidz_log2[256];
 
 uint8_t
 vdev_raidz_exp2(uint_t a, int exp);
