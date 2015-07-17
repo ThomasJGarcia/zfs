@@ -177,6 +177,13 @@ const uint8_t vdev_raidz_log2[256] = {
 	0x74, 0xd6, 0xf4, 0xea, 0xa8, 0x50, 0x58, 0xaf,
 };
 
+//Vectorized Modes
+#define OFF 0
+#define SSE4 1
+#define AVX 2
+
+static int vector_mode = AVX;
+
 static void vdev_raidz_generate_parity(raidz_map_t *rm);
 
 /*
@@ -535,6 +542,15 @@ vdev_raidz_generate_parity_p(raidz_map_t *rm)
 	uint64_t *p, *src, pcount, ccount, i;
 	int c;
 
+    if(vector_mode == SSE4) {
+        vdev_raidz_generate_parity_p_sse4(rm);
+        return;
+    }
+    if(vector_mode == AVX) {
+        vdev_raidz_generate_parity_p_avx(rm);
+        return;
+    }
+
 	pcount = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
 
 	for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
@@ -561,6 +577,15 @@ vdev_raidz_generate_parity_pq(raidz_map_t *rm)
 {
 	uint64_t *p, *q, *src, pcnt, ccnt, mask, i;
 	int c;
+
+    if(vector_mode == SSE4) {
+        vdev_raidz_generate_parity_pq_sse4(rm);
+        return;
+    }
+    if(vector_mode == AVX) {
+        vdev_raidz_generate_parity_pq_avx(rm);
+        return;
+    }
 
 	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
@@ -613,6 +638,15 @@ vdev_raidz_generate_parity_pqr(raidz_map_t *rm)
 {
 	uint64_t *p, *q, *r, *src, pcnt, ccnt, mask, i;
 	int c;
+
+    if(vector_mode == SSE4) {
+        vdev_raidz_generate_parity_pqr_sse4(rm);
+        return;
+    }
+    if(vector_mode == AVX) {
+        vdev_raidz_generate_parity_pqr_avx(rm);
+        return;
+    }
 
 	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
@@ -698,6 +732,13 @@ vdev_raidz_reconstruct_p(raidz_map_t *rm, int *tgts, int ntgts)
 	int x = tgts[0];
 	int c;
 
+    if(vector_mode == SSE4) {
+        return vdev_raidz_reconstruct_p_sse4(rm, tgts, ntgts);
+    }
+    if(vector_mode == AVX) {
+        return vdev_raidz_reconstruct_p_avx(rm, tgts, ntgts);
+    }
+
 	ASSERT(ntgts == 1);
 	ASSERT(x >= rm->rm_firstdatacol);
 	ASSERT(x < rm->rm_cols);
@@ -737,6 +778,13 @@ vdev_raidz_reconstruct_q(raidz_map_t *rm, int *tgts, int ntgts)
 	uint8_t *b;
 	int x = tgts[0];
 	int c, j, exp;
+
+    if(vector_mode == SSE4) {
+        return vdev_raidz_reconstruct_q_sse4(rm, tgts, ntgts);
+    }
+    if(vector_mode == AVX) {
+        return vdev_raidz_reconstruct_q_avx(rm, tgts, ntgts);
+    }
 
 	ASSERT(ntgts == 1);
 
@@ -796,6 +844,13 @@ vdev_raidz_reconstruct_pq(raidz_map_t *rm, int *tgts, int ntgts)
 	uint64_t xsize, ysize, i;
 	int x = tgts[0];
 	int y = tgts[1];
+
+    if(vector_mode == SSE4) {
+        return vdev_raidz_reconstruct_pq_sse4(rm, tgts, ntgts);
+    }
+    if(vector_mode == AVX) {
+        return vdev_raidz_reconstruct_pq_avx(rm, tgts, ntgts);
+    }
 
 	ASSERT(ntgts == 2);
 	ASSERT(x < y);
