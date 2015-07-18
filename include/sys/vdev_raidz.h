@@ -66,6 +66,11 @@
 #define kfpu_end() ((void)0)
 #endif
 
+//Vectorized Modes
+#define VDEV_RAIDZ_VECTORIZED_OFF 0
+#define VDEV_RAIDZ_VECTORIZED_SSE4 1
+#define VDEV_RAIDZ_VECTORIZED_AVX 2
+
 typedef struct raidz_col {
     uint64_t rc_devidx;     /* child device index for I/O */
     uint64_t rc_offset;     /* device offset */
@@ -87,6 +92,7 @@ typedef struct raidz_map {
     uint64_t rm_firstdatacol;   /* First data column/parity count */
     uint64_t rm_nskip;      /* Skipped sectors for padding */
     uint64_t rm_skipstart;      /* Column index of padding start */
+    uint64_t rm_vector_mode;
     void *rm_datacopy;      /* rm_asize-buffer of copied data */
     uintptr_t rm_reports;       /* # of referencing checksum reports */
     uint8_t rm_freed;       /* map no longer has referencing ZIO */

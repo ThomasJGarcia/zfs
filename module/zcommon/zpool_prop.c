@@ -29,6 +29,7 @@
 #include <sys/zfs_acl.h>
 #include <sys/zfs_ioctl.h>
 #include <sys/fs/zfs.h>
+#include <sys/vdev_raidz.h>
 
 #include "zfs_prop.h"
 
@@ -63,6 +64,13 @@ zpool_prop_init(void)
 		{ "panic",	ZIO_FAILURE_MODE_PANIC },
 		{ NULL }
 	};
+
+    static zprop_index_t vectorizedmode_table[] = {
+        { "off", VDEV_RAIDZ_VECTORIZED_OFF },
+        { "sse4", VDEV_RAIDZ_VECTORIZED_SSE4 },
+        { "avx", VDEV_RAIDZ_VECTORIZED_AVX },
+        { NULL }
+    };
 
 	/* string properties */
 	zprop_register_string(ZPOOL_PROP_ALTROOT, "altroot", NULL, PROP_DEFAULT,
@@ -127,6 +135,9 @@ zpool_prop_init(void)
 	zprop_register_index(ZPOOL_PROP_FAILUREMODE, "failmode",
 	    ZIO_FAILURE_MODE_WAIT, PROP_DEFAULT, ZFS_TYPE_POOL,
 	    "wait | continue | panic", "FAILMODE", failuremode_table);
+	zprop_register_index(ZPOOL_PROP_VECTORIZED, "vectorized",
+	    VDEV_RAIDZ_VECTORIZED_OFF, PROP_DEFAULT, ZFS_TYPE_POOL,
+	    "off | sse4 | avx", "VECTORIZED", vectorizedmode_table);
 
 	/* hidden properties */
 	zprop_register_hidden(ZPOOL_PROP_NAME, "name", PROP_TYPE_STRING,

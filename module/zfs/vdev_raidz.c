@@ -177,13 +177,6 @@ const uint8_t vdev_raidz_log2[256] = {
 	0x74, 0xd6, 0xf4, 0xea, 0xa8, 0x50, 0x58, 0xaf,
 };
 
-//Vectorized Modes
-#define OFF 0
-#define SSE4 1
-#define AVX 2
-
-static int vector_mode = AVX;
-
 static void vdev_raidz_generate_parity(raidz_map_t *rm);
 
 /*
@@ -453,6 +446,7 @@ vdev_raidz_map_alloc(zio_t *zio, uint64_t unit_shift, uint64_t dcols,
 	rm->rm_reports = 0;
 	rm->rm_freed = 0;
 	rm->rm_ecksuminjected = 0;
+    rm->rm_vector_mode = zio->io_vector_mode;
 
 	asize = 0;
 
@@ -542,11 +536,11 @@ vdev_raidz_generate_parity_p(raidz_map_t *rm)
 	uint64_t *p, *src, pcount, ccount, i;
 	int c;
 
-    if(vector_mode == SSE4) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_SSE4) {
         vdev_raidz_generate_parity_p_sse4(rm);
         return;
     }
-    if(vector_mode == AVX) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_AVX) {
         vdev_raidz_generate_parity_p_avx(rm);
         return;
     }
@@ -578,11 +572,11 @@ vdev_raidz_generate_parity_pq(raidz_map_t *rm)
 	uint64_t *p, *q, *src, pcnt, ccnt, mask, i;
 	int c;
 
-    if(vector_mode == SSE4) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_SSE4) {
         vdev_raidz_generate_parity_pq_sse4(rm);
         return;
     }
-    if(vector_mode == AVX) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_AVX) {
         vdev_raidz_generate_parity_pq_avx(rm);
         return;
     }
@@ -639,11 +633,11 @@ vdev_raidz_generate_parity_pqr(raidz_map_t *rm)
 	uint64_t *p, *q, *r, *src, pcnt, ccnt, mask, i;
 	int c;
 
-    if(vector_mode == SSE4) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_SSE4) {
         vdev_raidz_generate_parity_pqr_sse4(rm);
         return;
     }
-    if(vector_mode == AVX) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_AVX) {
         vdev_raidz_generate_parity_pqr_avx(rm);
         return;
     }
@@ -732,10 +726,10 @@ vdev_raidz_reconstruct_p(raidz_map_t *rm, int *tgts, int ntgts)
 	int x = tgts[0];
 	int c;
 
-    if(vector_mode == SSE4) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_SSE4) {
         return vdev_raidz_reconstruct_p_sse4(rm, tgts, ntgts);
     }
-    if(vector_mode == AVX) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_AVX) {
         return vdev_raidz_reconstruct_p_avx(rm, tgts, ntgts);
     }
 
@@ -779,10 +773,10 @@ vdev_raidz_reconstruct_q(raidz_map_t *rm, int *tgts, int ntgts)
 	int x = tgts[0];
 	int c, j, exp;
 
-    if(vector_mode == SSE4) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_SSE4) {
         return vdev_raidz_reconstruct_q_sse4(rm, tgts, ntgts);
     }
-    if(vector_mode == AVX) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_AVX) {
         return vdev_raidz_reconstruct_q_avx(rm, tgts, ntgts);
     }
 
@@ -845,10 +839,10 @@ vdev_raidz_reconstruct_pq(raidz_map_t *rm, int *tgts, int ntgts)
 	int x = tgts[0];
 	int y = tgts[1];
 
-    if(vector_mode == SSE4) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_SSE4) {
         return vdev_raidz_reconstruct_pq_sse4(rm, tgts, ntgts);
     }
-    if(vector_mode == AVX) {
+    if(rm->rm_vector_mode == VDEV_RAIDZ_VECTORIZED_AVX) {
         return vdev_raidz_reconstruct_pq_avx(rm, tgts, ntgts);
     }
 

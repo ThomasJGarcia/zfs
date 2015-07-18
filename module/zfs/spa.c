@@ -6244,6 +6244,8 @@ spa_sync_props(void *arg, dmu_tx_t *tx)
 			case ZPOOL_PROP_DEDUPDITTO:
 				spa->spa_dedup_ditto = intval;
 				break;
+            case ZPOOL_PROP_VECTORIZED:
+                spa->spa_vector_mode = intval;
 			default:
 				break;
 			}
