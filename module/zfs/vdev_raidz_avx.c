@@ -44,22 +44,22 @@ vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)
         if (c == rm->rm_firstdatacol) {
             ASSERT(ccount == pcount);
             for (i = 0; i < ccount / 16; i++, src+=16, p+=16) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU %%ymm0, (%[p])\n"
-                    "VMOVDQU 32(%[src]), %%ymm1\n"
-                    "VMOVDQU %%ymm1, 32(%[p])\n"
-                    "VMOVDQU 64(%[src]), %%ymm2\n"
-                    "VMOVDQU %%ymm2, 64(%[p])\n"
-                    "VMOVDQU 96(%[src]), %%ymm3\n"
-                    "VMOVDQU %%ymm3, 96(%[p])\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA %%ymm0, (%[p])\n"
+                    "VMOVDQA 32(%[src]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 32(%[p])\n"
+                    "VMOVDQA 64(%[src]), %%ymm2\n"
+                    "VMOVDQA %%ymm2, 64(%[p])\n"
+                    "VMOVDQA 96(%[src]), %%ymm3\n"
+                    "VMOVDQA %%ymm3, 96(%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
                     : "ymm0", "ymm1", "ymm2", "ymm3", "memory");
             }
             remainder = ccount % 16;
             for(i = 0; i < remainder / 4; i++, p+=4, src+=4) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU %%ymm0, (%[p])\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA %%ymm0, (%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
                     : "ymm0", "memory");
@@ -71,22 +71,22 @@ vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)
         } else {
             ASSERT(ccount <= pcount);
             for (i = 0; i < ccount / 16; i++, src+=16, p+=16) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU (%[p]), %%ymm1\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA (%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[p])\n"
-                    "VMOVDQU 32(%[src]), %%ymm2\n"
-                    "VMOVDQU 32(%[p]), %%ymm3\n"
+                    "VMOVDQA %%ymm1, (%[p])\n"
+                    "VMOVDQA 32(%[src]), %%ymm2\n"
+                    "VMOVDQA 32(%[p]), %%ymm3\n"
                     "VXORPS %%ymm2, %%ymm3, %%ymm3\n"
-                    "VMOVDQU %%ymm3, 32(%[p])\n"
-                    "VMOVDQU 64(%[src]), %%ymm4\n"
-                    "VMOVDQU 64(%[p]), %%ymm5\n"
+                    "VMOVDQA %%ymm3, 32(%[p])\n"
+                    "VMOVDQA 64(%[src]), %%ymm4\n"
+                    "VMOVDQA 64(%[p]), %%ymm5\n"
                     "VXORPS %%ymm4, %%ymm5, %%ymm5\n"
-                    "VMOVDQU %%ymm5, 64(%[p])\n"
-                    "VMOVDQU 96(%[src]), %%ymm6\n"
-                    "VMOVDQU 96(%[p]), %%ymm7\n"
+                    "VMOVDQA %%ymm5, 64(%[p])\n"
+                    "VMOVDQA 96(%[src]), %%ymm6\n"
+                    "VMOVDQA 96(%[p]), %%ymm7\n"
                     "VXORPS %%ymm6, %%ymm7, %%ymm7\n"
-                    "VMOVDQU %%ymm7, 96(%[p])\n"
+                    "VMOVDQA %%ymm7, 96(%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
                     : "ymm0", "ymm1", "ymm2", "ymm3",
@@ -94,10 +94,10 @@ vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)
             }
             remainder = ccount % 16;
             for(i = 0; i < remainder / 4; i++, p+=4, src+=4) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU (%[p]), %%ymm1\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA (%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[p])\n"
+                    "VMOVDQA %%ymm1, (%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
                     : "ymm0", "ymm1", "memory");
@@ -130,22 +130,22 @@ vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts)
     dst = rm->rm_col[x].rc_data;
     kfpu_begin();
     for (i = 0; i < xcount / 16; i++, src+=16, dst+=16) {
-        asm("VMOVDQU (%[src]), %%ymm0\n"
-            "VMOVDQU %%ymm0, (%[dst])\n"
-            "VMOVDQU 32(%[src]), %%ymm1\n"
-            "VMOVDQU %%ymm1, 32(%[dst])\n"
-            "VMOVDQU 64(%[src]), %%ymm2\n"
-            "VMOVDQU %%ymm2, 64(%[dst])\n"
-            "VMOVDQU 96(%[src]), %%ymm3\n"
-            "VMOVDQU %%ymm3, 96(%[dst])"
+        asm("VMOVDQA (%[src]), %%ymm0\n"
+            "VMOVDQA %%ymm0, (%[dst])\n"
+            "VMOVDQA 32(%[src]), %%ymm1\n"
+            "VMOVDQA %%ymm1, 32(%[dst])\n"
+            "VMOVDQA 64(%[src]), %%ymm2\n"
+            "VMOVDQA %%ymm2, 64(%[dst])\n"
+            "VMOVDQA 96(%[src]), %%ymm3\n"
+            "VMOVDQA %%ymm3, 96(%[dst])"
             :
             : [dst] "r" (dst), [src] "r" (src)
             : "ymm0", "ymm1", "ymm2", "ymm3", "memory");
     }
     remainder = xcount % 16;
     for (i = 0; i < remainder / 4; i++, src+=4, dst+=4) {
-        asm("VMOVDQU (%[src]), %%ymm0\n"
-            "VMOVDQU %%ymm0, (%[dst])"
+        asm("VMOVDQA (%[src]), %%ymm0\n"
+            "VMOVDQA %%ymm0, (%[dst])"
             :
             : [dst] "r" (dst), [src] "r" (src)
             : "ymm0", "memory");
@@ -166,22 +166,22 @@ vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts)
         count = MIN(ccount, xcount);
 
         for (i = 0; i < count / 16; i++, src+=16, dst+=16) {
-            asm("VMOVDQU (%[src]), %%ymm0\n"
-                "VMOVDQU (%[dst]), %%ymm1\n"
+            asm("VMOVDQA (%[src]), %%ymm0\n"
+                "VMOVDQA (%[dst]), %%ymm1\n"
                 "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                "VMOVDQU %%ymm1, (%[dst])\n"
-                "VMOVDQU 32(%[src]), %%ymm2\n"
-                "VMOVDQU 32(%[dst]), %%ymm3\n"
+                "VMOVDQA %%ymm1, (%[dst])\n"
+                "VMOVDQA 32(%[src]), %%ymm2\n"
+                "VMOVDQA 32(%[dst]), %%ymm3\n"
                 "VXORPS %%ymm2, %%ymm3, %%ymm3\n"
-                "VMOVDQU %%ymm3, 32(%[dst])\n"
-                "VMOVDQU 64(%[src]), %%ymm4\n"
-                "VMOVDQU 64(%[dst]), %%ymm5\n"
+                "VMOVDQA %%ymm3, 32(%[dst])\n"
+                "VMOVDQA 64(%[src]), %%ymm4\n"
+                "VMOVDQA 64(%[dst]), %%ymm5\n"
                 "VXORPS %%ymm4, %%ymm5, %%ymm5\n"
-                "VMOVDQU %%ymm5, 64(%[dst])\n"
-                "VMOVDQU 96(%[src]), %%ymm6\n"
-                "VMOVDQU 96(%[dst]), %%ymm7\n"
+                "VMOVDQA %%ymm5, 64(%[dst])\n"
+                "VMOVDQA 96(%[src]), %%ymm6\n"
+                "VMOVDQA 96(%[dst]), %%ymm7\n"
                 "VXORPS %%ymm6, %%ymm7, %%ymm7\n"
-                "VMOVDQU %%ymm7, 96(%[dst])\n"
+                "VMOVDQA %%ymm7, 96(%[dst])\n"
                 :
                 : [dst] "r" (dst), [src] "r" (src)
                 : "ymm0", "ymm1", "ymm2", "ymm3",
@@ -189,10 +189,10 @@ vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts)
         }
         remainder = count % 16;
         for (i = 0; i < remainder / 4; i++, src+=4, dst+=4) {
-            asm("VMOVDQU (%[src]), %%ymm0\n"
-                "VMOVDQU (%[dst]), %%ymm1\n"
+            asm("VMOVDQA (%[src]), %%ymm0\n"
+                "VMOVDQA (%[dst]), %%ymm1\n"
                 "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                "VMOVDQU %%ymm1, (%[dst])"
+                "VMOVDQA %%ymm1, (%[dst])"
                 :
                 : [dst] "r" (dst), [src] "r" (src)
                 : "ymm0", "ymm1");
@@ -229,27 +229,27 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
             ASSERT(ccnt == pcnt || ccnt == 0);
             if(ccnt != 0) {
                 for (i = 0; i < ccnt / 16; i++, src+=16, p+=16, q+=16) {
-                    asm("VMOVDQU (%[src]), %%ymm0\n"
-                        "VMOVDQU %%ymm0, (%[p])\n"
-                        "VMOVDQU %%ymm0, (%[q])\n"
-                        "VMOVDQU 32(%[src]), %%ymm1\n"
-                        "VMOVDQU %%ymm1, 32(%[p])\n"
-                        "VMOVDQU %%ymm1, 32(%[q])\n"
-                        "VMOVDQU 64(%[src]), %%ymm2\n"
-                        "VMOVDQU %%ymm2, 64(%[p])\n"
-                        "VMOVDQU %%ymm2, 64(%[q])\n"
-                        "VMOVDQU 96(%[src]), %%ymm3\n"
-                        "VMOVDQU %%ymm3, 96(%[p])\n"
-                        "VMOVDQU %%ymm3, 96(%[q])\n"
+                    asm("VMOVDQA (%[src]), %%ymm0\n"
+                        "VMOVDQA %%ymm0, (%[p])\n"
+                        "VMOVDQA %%ymm0, (%[q])\n"
+                        "VMOVDQA 32(%[src]), %%ymm1\n"
+                        "VMOVDQA %%ymm1, 32(%[p])\n"
+                        "VMOVDQA %%ymm1, 32(%[q])\n"
+                        "VMOVDQA 64(%[src]), %%ymm2\n"
+                        "VMOVDQA %%ymm2, 64(%[p])\n"
+                        "VMOVDQA %%ymm2, 64(%[q])\n"
+                        "VMOVDQA 96(%[src]), %%ymm3\n"
+                        "VMOVDQA %%ymm3, 96(%[p])\n"
+                        "VMOVDQA %%ymm3, 96(%[q])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [src] "r" (src)
                         : "ymm0", "ymm1", "ymm2", "ymm3", "memory");
                 }
                 remainder = ccnt % 16;
                 for (i = 0; i < remainder / 4; i++, src+=4, p+=4, q+=4) {
-                    asm("VMOVDQU (%[src]), %%ymm0\n"
-                        "VMOVDQU %%ymm0, (%[p])\n"
-                        "VMOVDQU %%ymm0, (%[q])"
+                    asm("VMOVDQA (%[src]), %%ymm0\n"
+                        "VMOVDQA %%ymm0, (%[p])\n"
+                        "VMOVDQA %%ymm0, (%[q])"
                         :
                         : [p] "r" (p), [q] "r" (q), [src] "r" (src)
                         : "ymm0", "memory");
@@ -262,14 +262,14 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
             } else {
                 for (i = 0; i < pcnt / 16; i++, p+=16, q+=16) {
                     asm("VXORPS %%ymm0, %%ymm0, %%ymm0\n"
-                        "VMOVDQU %%ymm0, (%[p])\n"
-                        "VMOVDQU %%ymm0, (%[q])\n"
-                        "VMOVDQU %%ymm0, 32(%[p])\n"
-                        "VMOVDQU %%ymm0, 32(%[q])\n"
-                        "VMOVDQU %%ymm0, 64(%[p])\n"
-                        "VMOVDQU %%ymm0, 64(%[q])\n"
-                        "VMOVDQU %%ymm0, 96(%[p])\n"
-                        "VMOVDQU %%ymm0, 96(%[q])\n"
+                        "VMOVDQA %%ymm0, (%[p])\n"
+                        "VMOVDQA %%ymm0, (%[q])\n"
+                        "VMOVDQA %%ymm0, 32(%[p])\n"
+                        "VMOVDQA %%ymm0, 32(%[q])\n"
+                        "VMOVDQA %%ymm0, 64(%[p])\n"
+                        "VMOVDQA %%ymm0, 64(%[q])\n"
+                        "VMOVDQA %%ymm0, 96(%[p])\n"
+                        "VMOVDQA %%ymm0, 96(%[q])\n"
                         :
                         : [p] "r" (p), [q] "r" (q)
                         : "ymm0", "memory");
@@ -277,8 +277,8 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                 remainder = pcnt % 16;
                 for (i = 0; i < remainder / 4; i++, p+=4, q+=4) {
                     asm("VXORPS %%ymm0, %%ymm0, %%ymm0\n"
-                        "VMOVDQU %%ymm0, (%[p])\n"
-                        "VMOVDQU %%ymm0, (%[q])"
+                        "VMOVDQA %%ymm0, (%[p])\n"
+                        "VMOVDQA %%ymm0, (%[q])"
                         :
                         : [p] "r" (p), [q] "r" (q)
                         : "ymm0", "memory");
@@ -297,11 +297,11 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
             * the previous result and adding in the new value.
             */
             for (i = 0; i < ccnt / 16; i++, src+=16, p+=16, q+=16) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU (%[p]), %%ymm1\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA (%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[p])\n"
-                    "VMOVDQU (%[q]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, (%[p])\n"
+                    "VMOVDQA (%[q]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VXORPS %%xmm3, %%xmm3, %%xmm3\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
@@ -317,12 +317,12 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[q])\n"
-                    "VMOVDQU 32(%[src]), %%ymm0\n"
-                    "VMOVDQU 32(%[p]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, (%[q])\n"
+                    "VMOVDQA 32(%[src]), %%ymm0\n"
+                    "VMOVDQA 32(%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 32(%[p])\n"
-                    "VMOVDQU 32(%[q]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 32(%[p])\n"
+                    "VMOVDQA 32(%[q]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -334,12 +334,12 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 32(%[q])\n"
-                    "VMOVDQU 64(%[src]), %%ymm0\n"
-                    "VMOVDQU 64(%[p]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 32(%[q])\n"
+                    "VMOVDQA 64(%[src]), %%ymm0\n"
+                    "VMOVDQA 64(%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 64(%[p])\n"
-                    "VMOVDQU 64(%[q]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 64(%[p])\n"
+                    "VMOVDQA 64(%[q]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -351,12 +351,12 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 64(%[q])\n"
-                    "VMOVDQU 96(%[src]), %%ymm0\n"
-                    "VMOVDQU 96(%[p]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 64(%[q])\n"
+                    "VMOVDQA 96(%[src]), %%ymm0\n"
+                    "VMOVDQA 96(%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 96(%[p])\n"
-                    "VMOVDQU 96(%[q]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 96(%[p])\n"
+                    "VMOVDQA 96(%[q]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -368,7 +368,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 96(%[q])\n"
+                    "VMOVDQA %%ymm1, 96(%[q])\n"
                     :
                     : [p] "r" (p), [q] "r" (q), [src] "r" (src)
                     : "rax", "ymm0", "ymm1", "xmm2",
@@ -376,11 +376,11 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
             }
             remainder = ccnt % 16;
             for (i = 0; i < remainder / 4; i++, src+=4, p+=4, q+=4) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU (%[p]), %%ymm1\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA (%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[p])\n"
-                    "VMOVDQU (%[q]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, (%[p])\n"
+                    "VMOVDQA (%[q]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VXORPS %%xmm3, %%xmm3, %%xmm3\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
@@ -396,7 +396,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[q])"
+                    "VMOVDQA %%ymm1, (%[q])"
                     :
                     : [p] "r" (p), [q] "r" (q), [src] "r" (src)
                     : "rax", "ymm0", "ymm1", "xmm2",
@@ -540,22 +540,22 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
 
         if (c == rm->rm_firstdatacol) {
             for (i = 0; i < count / 16; i++, src+=16, dst+=16) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU %%ymm0, (%[dst])\n"
-                    "VMOVDQU 32(%[src]), %%ymm1\n"
-                    "VMOVDQU %%ymm1, 32(%[dst])\n"
-                    "VMOVDQU 64(%[src]), %%ymm2\n"
-                    "VMOVDQU %%ymm2, 64(%[dst])\n"
-                    "VMOVDQU 96(%[src]), %%ymm3\n"
-                    "VMOVDQU %%ymm3, 96(%[dst])\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA %%ymm0, (%[dst])\n"
+                    "VMOVDQA 32(%[src]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 32(%[dst])\n"
+                    "VMOVDQA 64(%[src]), %%ymm2\n"
+                    "VMOVDQA %%ymm2, 64(%[dst])\n"
+                    "VMOVDQA 96(%[src]), %%ymm3\n"
+                    "VMOVDQA %%ymm3, 96(%[dst])\n"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
                     : "ymm0", "ymm1", "ymm2", "ymm3", "memory");
             }
             remainder = count % 16;
             for (i = 0; i < remainder / 4; i++, src+=4, dst+=4) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU %%ymm0, (%[dst])"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA %%ymm0, (%[dst])"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
                     : "ymm0", "memory");
@@ -566,10 +566,10 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
             }
             for (i = 0; i < (xcount - count) / 16; i++, dst+=16) {
                 asm("VXORPS %%ymm0, %%ymm0, %%ymm0\n"
-                    "VMOVDQU %%ymm0, (%[dst])\n"
-                    "VMOVDQU %%ymm0, 32(%[dst])\n"
-                    "VMOVDQU %%ymm0, 64(%[dst])\n"
-                    "VMOVDQU %%ymm0, 96(%[dst])\n"
+                    "VMOVDQA %%ymm0, (%[dst])\n"
+                    "VMOVDQA %%ymm0, 32(%[dst])\n"
+                    "VMOVDQA %%ymm0, 64(%[dst])\n"
+                    "VMOVDQA %%ymm0, 96(%[dst])\n"
                     :
                     : [dst] "r" (dst)
                     : "ymm0", "memory");
@@ -577,7 +577,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
             remainder = (xcount - count) % 16;
             for (i = 0; i < remainder / 4; i++, dst+=4) {
                 asm("VXORPS %%ymm0, %%ymm0, %%ymm0\n"
-                    "VMOVDQU %%ymm0, (%[dst])"
+                    "VMOVDQA %%ymm0, (%[dst])"
                     :
                     : [dst] "r" (dst)
                     : "ymm0", "memory");
@@ -588,9 +588,9 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
             }
         } else {
             for (i = 0; i < count / 16; i++, src+=16, dst+=16) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU (%[dst]), %%ymm1\n"
+                    "VMOVDQA (%[dst]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VXORPS %%xmm3, %%xmm3, %%xmm3\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
@@ -606,10 +606,10 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[dst])\n"
-                    "VMOVDQU 32(%[src]), %%ymm0\n"
+                    "VMOVDQA %%ymm1, (%[dst])\n"
+                    "VMOVDQA 32(%[src]), %%ymm0\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU 32(%[dst]), %%ymm1\n"
+                    "VMOVDQA 32(%[dst]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -621,10 +621,10 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 32(%[dst])\n"
-                    "VMOVDQU 64(%[src]), %%ymm0\n"
+                    "VMOVDQA %%ymm1, 32(%[dst])\n"
+                    "VMOVDQA 64(%[src]), %%ymm0\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU 64(%[dst]), %%ymm1\n"
+                    "VMOVDQA 64(%[dst]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -636,10 +636,10 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 64(%[dst])\n"
-                    "VMOVDQU 96(%[src]), %%ymm0\n"
+                    "VMOVDQA %%ymm1, 64(%[dst])\n"
+                    "VMOVDQA 96(%[src]), %%ymm0\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU 96(%[dst]), %%ymm1\n"
+                    "VMOVDQA 96(%[dst]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -651,7 +651,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 96(%[dst])\n"
+                    "VMOVDQA %%ymm1, 96(%[dst])\n"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
                     : "rax", "ymm0", "ymm1", "xmm2",
@@ -659,8 +659,8 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
             }
             remainder = count % 16;
             for (i = 0; i < remainder / 4; i++, src+=4, dst+=4) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU (%[dst]), %%ymm1\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA (%[dst]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VXORPS %%xmm3, %%xmm3, %%xmm3\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
@@ -676,7 +676,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[dst])"
+                    "VMOVDQA %%ymm1, (%[dst])"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
                     : "rax", "ymm0", "ymm1", "xmm2",
@@ -734,22 +734,22 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
             ASSERT(ccnt == pcnt || ccnt == 0);
             if(ccnt != 0) {
                 for (i = 0; i < ccnt / 16; i++, src+=16, p+=16, q+=16, r+=16) {
-                    asm("VMOVDQU (%[src]), %%ymm0\n"
-                        "VMOVDQU %%ymm0, (%[p])\n"
-                        "VMOVDQU %%ymm0, (%[q])\n"
-                        "VMOVDQU %%ymm0, (%[r])\n"
-                        "VMOVDQU 32(%[src]), %%ymm1\n"
-                        "VMOVDQU %%ymm1, 32(%[p])\n"
-                        "VMOVDQU %%ymm1, 32(%[q])\n"
-                        "VMOVDQU %%ymm1, 32(%[r])\n"
-                        "VMOVDQU 64(%[src]), %%ymm2\n"
-                        "VMOVDQU %%ymm2, 64(%[p])\n"
-                        "VMOVDQU %%ymm2, 64(%[q])\n"
-                        "VMOVDQU %%ymm2, 64(%[r])\n"
-                        "VMOVDQU 96(%[src]), %%ymm3\n"
-                        "VMOVDQU %%ymm3, 96(%[p])\n"
-                        "VMOVDQU %%ymm3, 96(%[q])\n"
-                        "VMOVDQU %%ymm3, 96(%[r])\n"
+                    asm("VMOVDQA (%[src]), %%ymm0\n"
+                        "VMOVDQA %%ymm0, (%[p])\n"
+                        "VMOVDQA %%ymm0, (%[q])\n"
+                        "VMOVDQA %%ymm0, (%[r])\n"
+                        "VMOVDQA 32(%[src]), %%ymm1\n"
+                        "VMOVDQA %%ymm1, 32(%[p])\n"
+                        "VMOVDQA %%ymm1, 32(%[q])\n"
+                        "VMOVDQA %%ymm1, 32(%[r])\n"
+                        "VMOVDQA 64(%[src]), %%ymm2\n"
+                        "VMOVDQA %%ymm2, 64(%[p])\n"
+                        "VMOVDQA %%ymm2, 64(%[q])\n"
+                        "VMOVDQA %%ymm2, 64(%[r])\n"
+                        "VMOVDQA 96(%[src]), %%ymm3\n"
+                        "VMOVDQA %%ymm3, 96(%[p])\n"
+                        "VMOVDQA %%ymm3, 96(%[q])\n"
+                        "VMOVDQA %%ymm3, 96(%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q),
                           [r] "r" (r), [src] "r" (src)
@@ -757,10 +757,10 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                 }
                 remainder = ccnt % 16;
                 for (i = 0; i < remainder / 4; i++, src+=4, p+=4, q+=4, r+=4) {
-                    asm("VMOVDQU (%[src]), %%ymm0\n"
-                        "VMOVDQU %%ymm0, (%[p])\n"
-                        "VMOVDQU %%ymm0, (%[q])\n"
-                        "VMOVDQU %%ymm0, (%[r])\n"
+                    asm("VMOVDQA (%[src]), %%ymm0\n"
+                        "VMOVDQA %%ymm0, (%[p])\n"
+                        "VMOVDQA %%ymm0, (%[q])\n"
+                        "VMOVDQA %%ymm0, (%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q),
                           [r] "r" (r), [src] "r" (src)
@@ -775,18 +775,18 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
             } else {
                 for (i = 0; i < pcnt / 16; i++, p+=16, q+=16, r+=16) {
                     asm("VXORPS %%ymm0, %%ymm0, %%ymm0\n"
-                        "VMOVDQU %%ymm0, (%[p])\n"
-                        "VMOVDQU %%ymm0, (%[q])\n"
-                        "VMOVDQU %%ymm0, (%[r])\n"
-                        "VMOVDQU %%ymm0, 32(%[p])\n"
-                        "VMOVDQU %%ymm0, 32(%[q])\n"
-                        "VMOVDQU %%ymm0, 32(%[r])\n"
-                        "VMOVDQU %%ymm0, 64(%[p])\n"
-                        "VMOVDQU %%ymm0, 64(%[q])\n"
-                        "VMOVDQU %%ymm0, 64(%[r])\n"
-                        "VMOVDQU %%ymm0, 96(%[p])\n"
-                        "VMOVDQU %%ymm0, 96(%[q])\n"
-                        "VMOVDQU %%ymm0, 96(%[r])\n"
+                        "VMOVDQA %%ymm0, (%[p])\n"
+                        "VMOVDQA %%ymm0, (%[q])\n"
+                        "VMOVDQA %%ymm0, (%[r])\n"
+                        "VMOVDQA %%ymm0, 32(%[p])\n"
+                        "VMOVDQA %%ymm0, 32(%[q])\n"
+                        "VMOVDQA %%ymm0, 32(%[r])\n"
+                        "VMOVDQA %%ymm0, 64(%[p])\n"
+                        "VMOVDQA %%ymm0, 64(%[q])\n"
+                        "VMOVDQA %%ymm0, 64(%[r])\n"
+                        "VMOVDQA %%ymm0, 96(%[p])\n"
+                        "VMOVDQA %%ymm0, 96(%[q])\n"
+                        "VMOVDQA %%ymm0, 96(%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [r] "r" (r)
                         : "ymm0", "memory");
@@ -794,9 +794,9 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                 remainder = pcnt % 16;
                 for (i = 0; i < remainder / 4; i++, p+=4, q+=4, r+=4) {
                     asm("VXORPS %%ymm0, %%ymm0, %%ymm0\n"
-                        "VMOVDQU %%ymm0, (%[p])\n"
-                        "VMOVDQU %%ymm0, (%[q])\n"
-                        "VMOVDQU %%ymm0, (%[r])\n"
+                        "VMOVDQA %%ymm0, (%[p])\n"
+                        "VMOVDQA %%ymm0, (%[q])\n"
+                        "VMOVDQA %%ymm0, (%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [r] "r" (r)
                         : "ymm0", "memory");
@@ -812,11 +812,11 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
             ASSERT(ccnt <= pcnt);
 
             for (i = 0; i < ccnt / 16; i++, src+=16, p+=16, q+=16, r+=16) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU (%[p]), %%ymm1\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA (%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[p])\n"
-                    "VMOVDQU (%[q]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, (%[p])\n"
+                    "VMOVDQA (%[q]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VXORPS %%xmm3, %%xmm3, %%xmm3\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
@@ -832,8 +832,8 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[q])\n"
-                    "VMOVDQU (%[r]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, (%[q])\n"
+                    "VMOVDQA (%[r]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -853,12 +853,12 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[r])\n"
-                    "VMOVDQU 32(%[src]), %%ymm0\n"
-                    "VMOVDQU 32(%[p]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, (%[r])\n"
+                    "VMOVDQA 32(%[src]), %%ymm0\n"
+                    "VMOVDQA 32(%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 32(%[p])\n"
-                    "VMOVDQU 32(%[q]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 32(%[p])\n"
+                    "VMOVDQA 32(%[q]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -870,46 +870,8 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 32(%[q])\n"
-                    "VMOVDQU 32(%[r]), %%ymm1\n"
-                    "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
-                    "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
-                    "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
-                    "VPAND %%xmm6, %%xmm4, %%xmm4\n"
-                    "VPAND %%xmm6, %%xmm5, %%xmm5\n"
-                    "VPADDB %%xmm1, %%xmm1, %%xmm1\n"
-                    "VPADDB %%xmm2, %%xmm2, %%xmm2\n"
-                    "VPXOR %%xmm1, %%xmm4, %%xmm1\n"
-                    "VPXOR %%xmm2, %%xmm5, %%xmm2\n"
-                    "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
-                    "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
-                    "VPAND %%xmm6, %%xmm4, %%xmm4\n"
-                    "VPAND %%xmm6, %%xmm5, %%xmm5\n"
-                    "VINSERTF128 $1, %%xmm5, %%ymm4, %%ymm4\n"
-                    "VPADDB %%xmm1, %%xmm1, %%xmm1\n"
-                    "VPADDB %%xmm2, %%xmm2, %%xmm2\n"
-                    "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
-                    "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
-                    "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 32(%[r])\n"
-                    "VMOVDQU 64(%[src]), %%ymm0\n"
-                    "VMOVDQU 64(%[p]), %%ymm1\n"
-                    "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 64(%[p])\n"
-                    "VMOVDQU 64(%[q]), %%ymm1\n"
-                    "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
-                    "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
-                    "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
-                    "VPAND %%xmm6, %%xmm4, %%xmm4\n"
-                    "VPAND %%xmm6, %%xmm5, %%xmm5\n"
-                    "VINSERTF128 $1, %%xmm5, %%ymm4, %%ymm4\n"
-                    "VPADDB %%xmm1, %%xmm1, %%xmm1\n"
-                    "VPADDB %%xmm2, %%xmm2, %%xmm2\n"
-                    "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
-                    "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
-                    "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 64(%[q])\n"
-                    "VMOVDQU 64(%[r]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 32(%[q])\n"
+                    "VMOVDQA 32(%[r]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -929,12 +891,12 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 64(%[r])\n"
-                    "VMOVDQU 96(%[src]), %%ymm0\n"
-                    "VMOVDQU 96(%[p]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 32(%[r])\n"
+                    "VMOVDQA 64(%[src]), %%ymm0\n"
+                    "VMOVDQA 64(%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 96(%[p])\n"
-                    "VMOVDQU 96(%[q]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 64(%[p])\n"
+                    "VMOVDQA 64(%[q]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -946,8 +908,8 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 96(%[q])\n"
-                    "VMOVDQU 96(%[r]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, 64(%[q])\n"
+                    "VMOVDQA 64(%[r]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -967,7 +929,45 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, 96(%[r])\n"
+                    "VMOVDQA %%ymm1, 64(%[r])\n"
+                    "VMOVDQA 96(%[src]), %%ymm0\n"
+                    "VMOVDQA 96(%[p]), %%ymm1\n"
+                    "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
+                    "VMOVDQA %%ymm1, 96(%[p])\n"
+                    "VMOVDQA 96(%[q]), %%ymm1\n"
+                    "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
+                    "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
+                    "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
+                    "VPAND %%xmm6, %%xmm4, %%xmm4\n"
+                    "VPAND %%xmm6, %%xmm5, %%xmm5\n"
+                    "VINSERTF128 $1, %%xmm5, %%ymm4, %%ymm4\n"
+                    "VPADDB %%xmm1, %%xmm1, %%xmm1\n"
+                    "VPADDB %%xmm2, %%xmm2, %%xmm2\n"
+                    "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
+                    "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
+                    "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
+                    "VMOVDQA %%ymm1, 96(%[q])\n"
+                    "VMOVDQA 96(%[r]), %%ymm1\n"
+                    "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
+                    "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
+                    "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
+                    "VPAND %%xmm6, %%xmm4, %%xmm4\n"
+                    "VPAND %%xmm6, %%xmm5, %%xmm5\n"
+                    "VPADDB %%xmm1, %%xmm1, %%xmm1\n"
+                    "VPADDB %%xmm2, %%xmm2, %%xmm2\n"
+                    "VPXOR %%xmm1, %%xmm4, %%xmm1\n"
+                    "VPXOR %%xmm2, %%xmm5, %%xmm2\n"
+                    "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
+                    "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
+                    "VPAND %%xmm6, %%xmm4, %%xmm4\n"
+                    "VPAND %%xmm6, %%xmm5, %%xmm5\n"
+                    "VINSERTF128 $1, %%xmm5, %%ymm4, %%ymm4\n"
+                    "VPADDB %%xmm1, %%xmm1, %%xmm1\n"
+                    "VPADDB %%xmm2, %%xmm2, %%xmm2\n"
+                    "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
+                    "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
+                    "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
+                    "VMOVDQA %%ymm1, 96(%[r])\n"
                     :
                     : [p] "r" (p), [q] "r" (q),
                       [r] "r" (r), [src] "r" (src)
@@ -976,11 +976,11 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
             }
             remainder = ccnt % 16;
             for (i = 0; i < remainder / 4; i++, src+=4, p+=4, q+=4, r+=4) {
-                asm("VMOVDQU (%[src]), %%ymm0\n"
-                    "VMOVDQU (%[p]), %%ymm1\n"
+                asm("VMOVDQA (%[src]), %%ymm0\n"
+                    "VMOVDQA (%[p]), %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[p])\n"
-                    "VMOVDQU (%[q]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, (%[p])\n"
+                    "VMOVDQA (%[q]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VXORPS %%xmm3, %%xmm3, %%xmm3\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
@@ -996,8 +996,8 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[q])\n"
-                    "VMOVDQU (%[r]), %%ymm1\n"
+                    "VMOVDQA %%ymm1, (%[q])\n"
+                    "VMOVDQA (%[r]), %%ymm1\n"
                     "VEXTRACTF128 $1, %%ymm1, %%xmm2\n"
                     "VPCMPGTB %%xmm1, %%xmm3, %%xmm4\n"
                     "VPCMPGTB %%xmm2, %%xmm3, %%xmm5\n"
@@ -1017,7 +1017,7 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     "VINSERTF128 $1, %%xmm2, %%ymm1, %%ymm1\n"
                     "VXORPS %%ymm1, %%ymm4, %%ymm1\n"
                     "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
-                    "VMOVDQU %%ymm1, (%[r])\n"
+                    "VMOVDQA %%ymm1, (%[r])\n"
                     :
                     : [p] "r" (p), [q] "r" (q),
                       [r] "r" (r), [src] "r" (src)

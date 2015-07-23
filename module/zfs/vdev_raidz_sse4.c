@@ -44,22 +44,22 @@ vdev_raidz_generate_parity_p_sse4(raidz_map_t *rm)
         if (c == rm->rm_firstdatacol) {
             ASSERT(ccount == pcount);
             for (i = 0; i < ccount / 8; i++, src+=8, p+=8) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU %%xmm0, (%[p])\n"
-                    "MOVDQU 16(%[src]), %%xmm1\n"
-                    "MOVDQU %%xmm1, 16(%[p])\n"
-                    "MOVDQU 32(%[src]), %%xmm2\n"
-                    "MOVDQU %%xmm2, 32(%[p])\n"
-                    "MOVDQU 48(%[src]), %%xmm3\n"
-                    "MOVDQU %%xmm3, 48(%[p])\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA %%xmm0, (%[p])\n"
+                    "MOVDQA 16(%[src]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 16(%[p])\n"
+                    "MOVDQA 32(%[src]), %%xmm2\n"
+                    "MOVDQA %%xmm2, 32(%[p])\n"
+                    "MOVDQA 48(%[src]), %%xmm3\n"
+                    "MOVDQA %%xmm3, 48(%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
                     : "xmm0", "xmm1", "xmm2", "xmm3", "memory");
             }
             remainder = ccount % 8;
             for(i = 0; i < remainder / 2; i++, p+=2, src+=2) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU %%xmm0, (%[p])\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA %%xmm0, (%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
                     : "xmm0", "memory");
@@ -71,22 +71,22 @@ vdev_raidz_generate_parity_p_sse4(raidz_map_t *rm)
         } else {
             ASSERT(ccount <= pcount);
             for (i = 0; i < ccount / 8; i++, src+=8, p+=8) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU (%[p]), %%xmm1\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA (%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[p])\n"
-                    "MOVDQU 16(%[src]), %%xmm2\n"
-                    "MOVDQU 16(%[p]), %%xmm3\n"
+                    "MOVDQA %%xmm1, (%[p])\n"
+                    "MOVDQA 16(%[src]), %%xmm2\n"
+                    "MOVDQA 16(%[p]), %%xmm3\n"
                     "PXOR %%xmm2, %%xmm3\n"
-                    "MOVDQU %%xmm3, 16(%[p])\n"
-                    "MOVDQU 32(%[src]), %%xmm4\n"
-                    "MOVDQU 32(%[p]), %%xmm5\n"
+                    "MOVDQA %%xmm3, 16(%[p])\n"
+                    "MOVDQA 32(%[src]), %%xmm4\n"
+                    "MOVDQA 32(%[p]), %%xmm5\n"
                     "PXOR %%xmm4, %%xmm5\n"
-                    "MOVDQU %%xmm5, 32(%[p])\n"
-                    "MOVDQU 48(%[src]), %%xmm6\n"
-                    "MOVDQU 48(%[p]), %%xmm7\n"
+                    "MOVDQA %%xmm5, 32(%[p])\n"
+                    "MOVDQA 48(%[src]), %%xmm6\n"
+                    "MOVDQA 48(%[p]), %%xmm7\n"
                     "PXOR %%xmm6, %%xmm7\n"
-                    "MOVDQU %%xmm7, 48(%[p])\n"
+                    "MOVDQA %%xmm7, 48(%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
                     : "xmm0", "xmm1", "xmm2", "xmm3",
@@ -94,10 +94,10 @@ vdev_raidz_generate_parity_p_sse4(raidz_map_t *rm)
             }
             remainder = ccount % 8;
             for(i = 0; i < remainder / 2; i++, p+=2, src+=2) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU (%[p]), %%xmm1\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA (%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[p])\n"
+                    "MOVDQA %%xmm1, (%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
                     : "xmm0", "xmm1", "memory");
@@ -130,22 +130,22 @@ vdev_raidz_reconstruct_p_sse4(raidz_map_t *rm, int *tgts, int ntgts)
     dst = rm->rm_col[x].rc_data;
     kfpu_begin();
     for (i = 0; i < xcount / 8; i++, src+=8, dst+=8) {
-        asm("MOVDQU (%[src]), %%xmm0\n"
-            "MOVDQU %%xmm0, (%[dst])\n"
-            "MOVDQU 16(%[src]), %%xmm1\n"
-            "MOVDQU %%xmm1, 16(%[dst])\n"
-            "MOVDQU 32(%[src]), %%xmm2\n"
-            "MOVDQU %%xmm2, 32(%[dst])\n"
-            "MOVDQU 48(%[src]), %%xmm3\n"
-            "MOVDQU %%xmm3, 48(%[dst])"
+        asm("MOVDQA (%[src]), %%xmm0\n"
+            "MOVDQA %%xmm0, (%[dst])\n"
+            "MOVDQA 16(%[src]), %%xmm1\n"
+            "MOVDQA %%xmm1, 16(%[dst])\n"
+            "MOVDQA 32(%[src]), %%xmm2\n"
+            "MOVDQA %%xmm2, 32(%[dst])\n"
+            "MOVDQA 48(%[src]), %%xmm3\n"
+            "MOVDQA %%xmm3, 48(%[dst])"
             :
             : [dst] "r" (dst), [src] "r" (src)
             : "xmm0", "xmm1", "xmm2", "xmm3", "memory");
     }
     remainder = xcount % 8;
     for (i = 0; i < remainder / 2; i++, src+=2, dst+=2) {
-        asm("MOVDQU (%[src]), %%xmm0\n"
-            "MOVDQU %%xmm0, (%[dst])"
+        asm("MOVDQA (%[src]), %%xmm0\n"
+            "MOVDQA %%xmm0, (%[dst])"
             :
             : [dst] "r" (dst), [src] "r" (src)
             : "xmm0", "memory");
@@ -166,22 +166,22 @@ vdev_raidz_reconstruct_p_sse4(raidz_map_t *rm, int *tgts, int ntgts)
         count = MIN(ccount, xcount);
 
         for (i = 0; i < count / 8; i++, src+=8, dst+=8) {
-            asm("MOVDQU (%[src]), %%xmm0\n"
-                "MOVDQU (%[dst]), %%xmm1\n"
+            asm("MOVDQA (%[src]), %%xmm0\n"
+                "MOVDQA (%[dst]), %%xmm1\n"
                 "PXOR %%xmm0, %%xmm1\n"
-                "MOVDQU %%xmm1, (%[dst])\n"
-                "MOVDQU 16(%[src]), %%xmm2\n"
-                "MOVDQU 16(%[dst]), %%xmm3\n"
+                "MOVDQA %%xmm1, (%[dst])\n"
+                "MOVDQA 16(%[src]), %%xmm2\n"
+                "MOVDQA 16(%[dst]), %%xmm3\n"
                 "PXOR %%xmm2, %%xmm3\n"
-                "MOVDQU %%xmm3, 16(%[dst])\n"
-                "MOVDQU 32(%[src]), %%xmm4\n"
-                "MOVDQU 32(%[dst]), %%xmm5\n"
+                "MOVDQA %%xmm3, 16(%[dst])\n"
+                "MOVDQA 32(%[src]), %%xmm4\n"
+                "MOVDQA 32(%[dst]), %%xmm5\n"
                 "PXOR %%xmm4, %%xmm5\n"
-                "MOVDQU %%xmm5, 32(%[dst])\n"
-                "MOVDQU 48(%[src]), %%xmm6\n"
-                "MOVDQU 48(%[dst]), %%xmm7\n"
+                "MOVDQA %%xmm5, 32(%[dst])\n"
+                "MOVDQA 48(%[src]), %%xmm6\n"
+                "MOVDQA 48(%[dst]), %%xmm7\n"
                 "PXOR %%xmm6, %%xmm7\n"
-                "MOVDQU %%xmm7, 48(%[dst])\n"
+                "MOVDQA %%xmm7, 48(%[dst])\n"
                 :
                 : [dst] "r" (dst), [src] "r" (src)
                 : "xmm0", "xmm1", "xmm2", "xmm3",
@@ -189,10 +189,10 @@ vdev_raidz_reconstruct_p_sse4(raidz_map_t *rm, int *tgts, int ntgts)
         }
         remainder = count % 8;
         for (i = 0; i < remainder / 2; i++, src+=2, dst+=2) {
-            asm("MOVDQU (%[src]), %%xmm0\n"
-                "MOVDQU (%[dst]), %%xmm1\n"
+            asm("MOVDQA (%[src]), %%xmm0\n"
+                "MOVDQA (%[dst]), %%xmm1\n"
                 "PXOR %%xmm0, %%xmm1\n"
-                "MOVDQU %%xmm1, (%[dst])"
+                "MOVDQA %%xmm1, (%[dst])"
                 :
                 : [dst] "r" (dst), [src] "r" (src)
                 : "xmm0", "xmm1");
@@ -229,27 +229,27 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
             ASSERT(ccnt == pcnt || ccnt == 0);
             if(ccnt != 0) {
                 for (i = 0; i < ccnt / 8; i++, src+=8, p+=8, q+=8) {
-                    asm("MOVDQU (%[src]), %%xmm0\n"
-                        "MOVDQU %%xmm0, (%[p])\n"
-                        "MOVDQU %%xmm0, (%[q])\n"
-                        "MOVDQU 16(%[src]), %%xmm1\n"
-                        "MOVDQU %%xmm1, 16(%[p])\n"
-                        "MOVDQU %%xmm1, 16(%[q])\n"
-                        "MOVDQU 32(%[src]), %%xmm2\n"
-                        "MOVDQU %%xmm2, 32(%[p])\n"
-                        "MOVDQU %%xmm2, 32(%[q])\n"
-                        "MOVDQU 48(%[src]), %%xmm3\n"
-                        "MOVDQU %%xmm3, 48(%[p])\n"
-                        "MOVDQU %%xmm3, 48(%[q])\n"
+                    asm("MOVDQA (%[src]), %%xmm0\n"
+                        "MOVDQA %%xmm0, (%[p])\n"
+                        "MOVDQA %%xmm0, (%[q])\n"
+                        "MOVDQA 16(%[src]), %%xmm1\n"
+                        "MOVDQA %%xmm1, 16(%[p])\n"
+                        "MOVDQA %%xmm1, 16(%[q])\n"
+                        "MOVDQA 32(%[src]), %%xmm2\n"
+                        "MOVDQA %%xmm2, 32(%[p])\n"
+                        "MOVDQA %%xmm2, 32(%[q])\n"
+                        "MOVDQA 48(%[src]), %%xmm3\n"
+                        "MOVDQA %%xmm3, 48(%[p])\n"
+                        "MOVDQA %%xmm3, 48(%[q])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [src] "r" (src)
                         : "xmm0", "xmm1", "xmm2", "xmm3", "memory");
                 }
                 remainder = ccnt % 8;
                 for (i = 0; i < remainder / 2; i++, src+=2, p+=2, q+=2) {
-                    asm("MOVDQU (%[src]), %%xmm0\n"
-                        "MOVDQU %%xmm0, (%[p])\n"
-                        "MOVDQU %%xmm0, (%[q])"
+                    asm("MOVDQA (%[src]), %%xmm0\n"
+                        "MOVDQA %%xmm0, (%[p])\n"
+                        "MOVDQA %%xmm0, (%[q])"
                         :
                         : [p] "r" (p), [q] "r" (q), [src] "r" (src)
                         : "xmm0", "memory");
@@ -262,14 +262,14 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
             } else {
                 for (i = 0; i < pcnt / 8; i++, p+=8, q+=8) {
                     asm("PXOR %%xmm0, %%xmm0\n"
-                        "MOVDQU %%xmm0, (%[p])\n"
-                        "MOVDQU %%xmm0, (%[q])\n"
-                        "MOVDQU %%xmm0, 16(%[p])\n"
-                        "MOVDQU %%xmm0, 16(%[q])\n"
-                        "MOVDQU %%xmm0, 32(%[p])\n"
-                        "MOVDQU %%xmm0, 32(%[q])\n"
-                        "MOVDQU %%xmm0, 48(%[p])\n"
-                        "MOVDQU %%xmm0, 48(%[q])\n"
+                        "MOVDQA %%xmm0, (%[p])\n"
+                        "MOVDQA %%xmm0, (%[q])\n"
+                        "MOVDQA %%xmm0, 16(%[p])\n"
+                        "MOVDQA %%xmm0, 16(%[q])\n"
+                        "MOVDQA %%xmm0, 32(%[p])\n"
+                        "MOVDQA %%xmm0, 32(%[q])\n"
+                        "MOVDQA %%xmm0, 48(%[p])\n"
+                        "MOVDQA %%xmm0, 48(%[q])\n"
                         :
                         : [p] "r" (p), [q] "r" (q)
                         : "xmm0", "memory");
@@ -277,8 +277,8 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
                 remainder = pcnt % 8;
                 for (i = 0; i < remainder / 2; i++, p+=2, q+=2) {
                     asm("PXOR %%xmm0, %%xmm0\n"
-                        "MOVDQU %%xmm0, (%[p])\n"
-                        "MOVDQU %%xmm0, (%[q])"
+                        "MOVDQA %%xmm0, (%[p])\n"
+                        "MOVDQA %%xmm0, (%[q])"
                         :
                         : [p] "r" (p), [q] "r" (q)
                         : "xmm0", "memory");
@@ -297,11 +297,11 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
             * the previous result and adding in the new value.
             */
             for (i = 0; i < ccnt / 8; i++, src+=8, p+=8, q+=8) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU (%[p]), %%xmm1\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA (%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[p])\n"
-                    "MOVDQU (%[q]), %%xmm1\n"
+                    "MOVDQA %%xmm1, (%[p])\n"
+                    "MOVDQA (%[q]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "MOVQ $0x1d1d1d1d1d1d1d1d, %%rax\n"
@@ -311,43 +311,43 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[q])\n"
-                    "MOVDQU 16(%[src]), %%xmm0\n"
-                    "MOVDQU 16(%[p]), %%xmm1\n"
+                    "MOVDQA %%xmm1, (%[q])\n"
+                    "MOVDQA 16(%[src]), %%xmm0\n"
+                    "MOVDQA 16(%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 16(%[p])\n"
-                    "MOVDQU 16(%[q]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 16(%[p])\n"
+                    "MOVDQA 16(%[q]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 16(%[q])\n"
-                    "MOVDQU 32(%[src]), %%xmm0\n"
-                    "MOVDQU 32(%[p]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 16(%[q])\n"
+                    "MOVDQA 32(%[src]), %%xmm0\n"
+                    "MOVDQA 32(%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 32(%[p])\n"
-                    "MOVDQU 32(%[q]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 32(%[p])\n"
+                    "MOVDQA 32(%[q]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 32(%[q])\n"
-                    "MOVDQU 48(%[src]), %%xmm0\n"
-                    "MOVDQU 48(%[p]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 32(%[q])\n"
+                    "MOVDQA 48(%[src]), %%xmm0\n"
+                    "MOVDQA 48(%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 48(%[p])\n"
-                    "MOVDQU 48(%[q]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 48(%[p])\n"
+                    "MOVDQA 48(%[q]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 48(%[q])\n"
+                    "MOVDQA %%xmm1, 48(%[q])\n"
                     :
                     : [p] "r" (p), [q] "r" (q), [src] "r" (src)
                     : "rax", "xmm0", "xmm1", "xmm2",
@@ -355,11 +355,11 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
             }
             remainder = ccnt % 8;
             for (i = 0; i < remainder / 2; i++, src+=2, p+=2, q+=2) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU (%[p]), %%xmm1\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA (%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[p])\n"
-                    "MOVDQU (%[q]), %%xmm1\n"
+                    "MOVDQA %%xmm1, (%[p])\n"
+                    "MOVDQA (%[q]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "MOVQ $0x1d1d1d1d1d1d1d1d, %%rax\n"
@@ -369,7 +369,7 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[q])"
+                    "MOVDQA %%xmm1, (%[q])"
                     :
                     : [p] "r" (p), [q] "r" (q), [src] "r" (src)
                     : "rax", "xmm0", "xmm1", "xmm2",
@@ -514,22 +514,22 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
 
         if (c == rm->rm_firstdatacol) {
             for (i = 0; i < count / 8; i++, src+=8, dst+=8) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU %%xmm0, (%[dst])\n"
-                    "MOVDQU 16(%[src]), %%xmm1\n"
-                    "MOVDQU %%xmm1, 16(%[dst])\n"
-                    "MOVDQU 32(%[src]), %%xmm2\n"
-                    "MOVDQU %%xmm2, 32(%[dst])\n"
-                    "MOVDQU 48(%[src]), %%xmm3\n"
-                    "MOVDQU %%xmm3, 48(%[dst])\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA %%xmm0, (%[dst])\n"
+                    "MOVDQA 16(%[src]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 16(%[dst])\n"
+                    "MOVDQA 32(%[src]), %%xmm2\n"
+                    "MOVDQA %%xmm2, 32(%[dst])\n"
+                    "MOVDQA 48(%[src]), %%xmm3\n"
+                    "MOVDQA %%xmm3, 48(%[dst])\n"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
                     : "xmm0", "xmm1", "xmm2", "xmm3", "memory");
             }
             remainder = count % 8;
             for (i = 0; i < remainder / 2; i++, src+=2, dst+=2) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU %%xmm0, (%[dst])"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA %%xmm0, (%[dst])"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
                     : "xmm0", "memory");
@@ -541,10 +541,10 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
             }
             for (i = 0; i < (xcount - count) / 8; i++, dst+=8) {
                 asm("PXOR %%xmm0, %%xmm0\n"
-                    "MOVDQU %%xmm0, (%[dst])\n"
-                    "MOVDQU %%xmm0, 16(%[dst])\n"
-                    "MOVDQU %%xmm0, 32(%[dst])\n"
-                    "MOVDQU %%xmm0, 48(%[dst])\n"
+                    "MOVDQA %%xmm0, (%[dst])\n"
+                    "MOVDQA %%xmm0, 16(%[dst])\n"
+                    "MOVDQA %%xmm0, 32(%[dst])\n"
+                    "MOVDQA %%xmm0, 48(%[dst])\n"
                     :
                     : [dst] "r" (dst)
                     : "xmm0", "memory");
@@ -552,7 +552,7 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
             remainder = (xcount - count) % 8;
             for (i = 0; i < remainder / 2; i++, dst+=2) {
                 asm("PXOR %%xmm0, %%xmm0\n"
-                    "MOVDQU %%xmm0, (%[dst])"
+                    "MOVDQA %%xmm0, (%[dst])"
                     :
                     : [dst] "r" (dst)
                     : "xmm0", "memory");
@@ -563,9 +563,9 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
             }
         } else {
             for (i = 0; i < count / 8; i++, src+=8, dst+=8) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU (%[dst]), %%xmm1\n"
+                    "MOVDQA (%[dst]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "MOVQ $0x1d1d1d1d1d1d1d1d, %%rax\n"
@@ -575,37 +575,37 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[dst])\n"
-                    "MOVDQU 16(%[src]), %%xmm0\n"
+                    "MOVDQA %%xmm1, (%[dst])\n"
+                    "MOVDQA 16(%[src]), %%xmm0\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU 16(%[dst]), %%xmm1\n"
+                    "MOVDQA 16(%[dst]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 16(%[dst])\n"
-                    "MOVDQU 32(%[src]), %%xmm0\n"
+                    "MOVDQA %%xmm1, 16(%[dst])\n"
+                    "MOVDQA 32(%[src]), %%xmm0\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU 32(%[dst]), %%xmm1\n"
+                    "MOVDQA 32(%[dst]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 32(%[dst])\n"
-                    "MOVDQU 48(%[src]), %%xmm0\n"
+                    "MOVDQA %%xmm1, 32(%[dst])\n"
+                    "MOVDQA 48(%[src]), %%xmm0\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU 48(%[dst]), %%xmm1\n"
+                    "MOVDQA 48(%[dst]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 48(%[dst])\n"
+                    "MOVDQA %%xmm1, 48(%[dst])\n"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
                     : "rax", "xmm0", "xmm1", "xmm2",
@@ -613,8 +613,8 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
             }
             remainder = count % 8;
             for (i = 0; i < remainder / 2; i++, src+=2, dst+=2) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU (%[dst]), %%xmm1\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA (%[dst]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "MOVQ $0x1d1d1d1d1d1d1d1d, %%rax\n"
@@ -624,7 +624,7 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm4, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[dst])"
+                    "MOVDQA %%xmm1, (%[dst])"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
                     : "rax", "xmm0", "xmm1", "xmm2",
@@ -683,22 +683,22 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
             ASSERT(ccnt == pcnt || ccnt == 0);
             if(ccnt != 0) {
                 for (i = 0; i < ccnt / 8; i++, src+=8, p+=8, q+=8, r+=8) {
-                    asm("MOVDQU (%[src]), %%xmm0\n"
-                        "MOVDQU %%xmm0, (%[p])\n"
-                        "MOVDQU %%xmm0, (%[q])\n"
-                        "MOVDQU %%xmm0, (%[r])\n"
-                        "MOVDQU 16(%[src]), %%xmm1\n"
-                        "MOVDQU %%xmm1, 16(%[p])\n"
-                        "MOVDQU %%xmm1, 16(%[q])\n"
-                        "MOVDQU %%xmm1, 16(%[r])\n"
-                        "MOVDQU 32(%[src]), %%xmm2\n"
-                        "MOVDQU %%xmm2, 32(%[p])\n"
-                        "MOVDQU %%xmm2, 32(%[q])\n"
-                        "MOVDQU %%xmm2, 32(%[r])\n"
-                        "MOVDQU 48(%[src]), %%xmm3\n"
-                        "MOVDQU %%xmm3, 48(%[p])\n"
-                        "MOVDQU %%xmm3, 48(%[q])\n"
-                        "MOVDQU %%xmm3, 48(%[r])\n"
+                    asm("MOVDQA (%[src]), %%xmm0\n"
+                        "MOVDQA %%xmm0, (%[p])\n"
+                        "MOVDQA %%xmm0, (%[q])\n"
+                        "MOVDQA %%xmm0, (%[r])\n"
+                        "MOVDQA 16(%[src]), %%xmm1\n"
+                        "MOVDQA %%xmm1, 16(%[p])\n"
+                        "MOVDQA %%xmm1, 16(%[q])\n"
+                        "MOVDQA %%xmm1, 16(%[r])\n"
+                        "MOVDQA 32(%[src]), %%xmm2\n"
+                        "MOVDQA %%xmm2, 32(%[p])\n"
+                        "MOVDQA %%xmm2, 32(%[q])\n"
+                        "MOVDQA %%xmm2, 32(%[r])\n"
+                        "MOVDQA 48(%[src]), %%xmm3\n"
+                        "MOVDQA %%xmm3, 48(%[p])\n"
+                        "MOVDQA %%xmm3, 48(%[q])\n"
+                        "MOVDQA %%xmm3, 48(%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q),
                           [r] "r" (r), [src] "r" (src)
@@ -706,10 +706,10 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                 }
                 remainder = ccnt % 8;
                 for (i = 0; i < remainder / 2; i++, src+=2, p+=2, q+=2, r+=2) {
-                    asm("MOVDQU (%[src]), %%xmm0\n"
-                        "MOVDQU %%xmm0, (%[p])\n"
-                        "MOVDQU %%xmm0, (%[q])\n"
-                        "MOVDQU %%xmm0, (%[r])\n"
+                    asm("MOVDQA (%[src]), %%xmm0\n"
+                        "MOVDQA %%xmm0, (%[p])\n"
+                        "MOVDQA %%xmm0, (%[q])\n"
+                        "MOVDQA %%xmm0, (%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q),
                           [r] "r" (r), [src] "r" (src)
@@ -724,18 +724,18 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
             } else {
                 for (i = 0; i < pcnt / 8; i++, p+=8, q+=8, r+=8) {
                     asm("PXOR %%xmm0, %%xmm0\n"
-                        "MOVDQU %%xmm0, (%[p])\n"
-                        "MOVDQU %%xmm0, (%[q])\n"
-                        "MOVDQU %%xmm0, (%[r])\n"
-                        "MOVDQU %%xmm0, 16(%[p])\n"
-                        "MOVDQU %%xmm0, 16(%[q])\n"
-                        "MOVDQU %%xmm0, 16(%[r])\n"
-                        "MOVDQU %%xmm0, 32(%[p])\n"
-                        "MOVDQU %%xmm0, 32(%[q])\n"
-                        "MOVDQU %%xmm0, 32(%[r])\n"
-                        "MOVDQU %%xmm0, 48(%[p])\n"
-                        "MOVDQU %%xmm0, 48(%[q])\n"
-                        "MOVDQU %%xmm0, 48(%[r])\n"
+                        "MOVDQA %%xmm0, (%[p])\n"
+                        "MOVDQA %%xmm0, (%[q])\n"
+                        "MOVDQA %%xmm0, (%[r])\n"
+                        "MOVDQA %%xmm0, 16(%[p])\n"
+                        "MOVDQA %%xmm0, 16(%[q])\n"
+                        "MOVDQA %%xmm0, 16(%[r])\n"
+                        "MOVDQA %%xmm0, 32(%[p])\n"
+                        "MOVDQA %%xmm0, 32(%[q])\n"
+                        "MOVDQA %%xmm0, 32(%[r])\n"
+                        "MOVDQA %%xmm0, 48(%[p])\n"
+                        "MOVDQA %%xmm0, 48(%[q])\n"
+                        "MOVDQA %%xmm0, 48(%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [r] "r" (r)
                         : "xmm0", "memory");
@@ -743,9 +743,9 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                 remainder = pcnt % 8;
                 for (i = 0; i < remainder / 2; i++, p+=2, q+=2, r+=2) {
                     asm("PXOR %%xmm0, %%xmm0\n"
-                        "MOVDQU %%xmm0, (%[p])\n"
-                        "MOVDQU %%xmm0, (%[q])\n"
-                        "MOVDQU %%xmm0, (%[r])\n"
+                        "MOVDQA %%xmm0, (%[p])\n"
+                        "MOVDQA %%xmm0, (%[q])\n"
+                        "MOVDQA %%xmm0, (%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [r] "r" (r)
                         : "xmm0", "memory");
@@ -761,11 +761,11 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
             ASSERT(ccnt <= pcnt);
 
             for (i = 0; i < ccnt / 8; i++, src+=8, p+=8, q+=8, r+=8) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU (%[p]), %%xmm1\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA (%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[p])\n"
-                    "MOVDQU (%[q]), %%xmm1\n"
+                    "MOVDQA %%xmm1, (%[p])\n"
+                    "MOVDQA (%[q]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "MOVQ $0x1d1d1d1d1d1d1d1d, %%rax\n"
@@ -775,8 +775,8 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[q])\n"
-                    "MOVDQU (%[r]), %%xmm1\n"
+                    "MOVDQA %%xmm1, (%[q])\n"
+                    "MOVDQA (%[r]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
@@ -788,45 +788,20 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[r])\n"
-                    "MOVDQU 16(%[src]), %%xmm0\n"
-                    "MOVDQU 16(%[p]), %%xmm1\n"
+                    "MOVDQA %%xmm1, (%[r])\n"
+                    "MOVDQA 16(%[src]), %%xmm0\n"
+                    "MOVDQA 16(%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 16(%[p])\n"
-                    "MOVDQU 16(%[q]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 16(%[p])\n"
+                    "MOVDQA 16(%[q]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 16(%[q])\n"
-                    "MOVDQU 16(%[r]), %%xmm1\n"
-                    "PXOR %%xmm3, %%xmm3\n"
-                    "PCMPGTB %%xmm1, %%xmm3\n"
-                    "PAND %%xmm6, %%xmm3\n"
-                    "PADDB %%xmm1, %%xmm1\n"
-                    "PXOR %%xmm3, %%xmm1\n"
-                    "PXOR %%xmm3, %%xmm3\n"
-                    "PCMPGTB %%xmm1, %%xmm3\n"
-                    "PAND %%xmm6, %%xmm3\n"
-                    "PADDB %%xmm1, %%xmm1\n"
-                    "PXOR %%xmm3, %%xmm1\n"
-                    "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 16(%[r])\n"
-                    "MOVDQU 32(%[src]), %%xmm0\n"
-                    "MOVDQU 32(%[p]), %%xmm1\n"
-                    "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 32(%[p])\n"
-                    "MOVDQU 32(%[q]), %%xmm1\n"
-                    "PXOR %%xmm3, %%xmm3\n"
-                    "PCMPGTB %%xmm1, %%xmm3\n"
-                    "PAND %%xmm6, %%xmm3\n"
-                    "PADDB %%xmm1, %%xmm1\n"
-                    "PXOR %%xmm3, %%xmm1\n"
-                    "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 32(%[q])\n"
-                    "MOVDQU 32(%[r]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 16(%[q])\n"
+                    "MOVDQA 16(%[r]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
@@ -838,20 +813,20 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 32(%[r])\n"
-                    "MOVDQU 48(%[src]), %%xmm0\n"
-                    "MOVDQU 48(%[p]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 16(%[r])\n"
+                    "MOVDQA 32(%[src]), %%xmm0\n"
+                    "MOVDQA 32(%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 48(%[p])\n"
-                    "MOVDQU 48(%[q]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 32(%[p])\n"
+                    "MOVDQA 32(%[q]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 48(%[q])\n"
-                    "MOVDQU 48(%[r]), %%xmm1\n"
+                    "MOVDQA %%xmm1, 32(%[q])\n"
+                    "MOVDQA 32(%[r]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
@@ -863,7 +838,32 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, 48(%[r])\n"
+                    "MOVDQA %%xmm1, 32(%[r])\n"
+                    "MOVDQA 48(%[src]), %%xmm0\n"
+                    "MOVDQA 48(%[p]), %%xmm1\n"
+                    "PXOR %%xmm0, %%xmm1\n"
+                    "MOVDQA %%xmm1, 48(%[p])\n"
+                    "MOVDQA 48(%[q]), %%xmm1\n"
+                    "PXOR %%xmm3, %%xmm3\n"
+                    "PCMPGTB %%xmm1, %%xmm3\n"
+                    "PAND %%xmm6, %%xmm3\n"
+                    "PADDB %%xmm1, %%xmm1\n"
+                    "PXOR %%xmm3, %%xmm1\n"
+                    "PXOR %%xmm0, %%xmm1\n"
+                    "MOVDQA %%xmm1, 48(%[q])\n"
+                    "MOVDQA 48(%[r]), %%xmm1\n"
+                    "PXOR %%xmm3, %%xmm3\n"
+                    "PCMPGTB %%xmm1, %%xmm3\n"
+                    "PAND %%xmm6, %%xmm3\n"
+                    "PADDB %%xmm1, %%xmm1\n"
+                    "PXOR %%xmm3, %%xmm1\n"
+                    "PXOR %%xmm3, %%xmm3\n"
+                    "PCMPGTB %%xmm1, %%xmm3\n"
+                    "PAND %%xmm6, %%xmm3\n"
+                    "PADDB %%xmm1, %%xmm1\n"
+                    "PXOR %%xmm3, %%xmm1\n"
+                    "PXOR %%xmm0, %%xmm1\n"
+                    "MOVDQA %%xmm1, 48(%[r])\n"
                     :
                     : [p] "r" (p), [q] "r" (q),
                       [r] "r" (r), [src] "r" (src)
@@ -872,11 +872,11 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
             }
             remainder = ccnt % 8;
             for (i = 0; i < remainder / 2; i++, src+=2, p+=2, q+=2, r+=2) {
-                asm("MOVDQU (%[src]), %%xmm0\n"
-                    "MOVDQU (%[p]), %%xmm1\n"
+                asm("MOVDQA (%[src]), %%xmm0\n"
+                    "MOVDQA (%[p]), %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[p])\n"
-                    "MOVDQU (%[q]), %%xmm1\n"
+                    "MOVDQA %%xmm1, (%[p])\n"
+                    "MOVDQA (%[q]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "MOVQ $0x1d1d1d1d1d1d1d1d, %%rax\n"
@@ -886,8 +886,8 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[q])\n"
-                    "MOVDQU (%[r]), %%xmm1\n"
+                    "MOVDQA %%xmm1, (%[q])\n"
+                    "MOVDQA (%[r]), %%xmm1\n"
                     "PXOR %%xmm3, %%xmm3\n"
                     "PCMPGTB %%xmm1, %%xmm3\n"
                     "PAND %%xmm6, %%xmm3\n"
@@ -899,7 +899,7 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                     "PADDB %%xmm1, %%xmm1\n"
                     "PXOR %%xmm3, %%xmm1\n"
                     "PXOR %%xmm0, %%xmm1\n"
-                    "MOVDQU %%xmm1, (%[r])\n"
+                    "MOVDQA %%xmm1, (%[r])\n"
                     :
                     : [p] "r" (p), [q] "r" (q),
                       [r] "r" (r), [src] "r" (src)
