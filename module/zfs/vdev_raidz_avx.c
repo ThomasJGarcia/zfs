@@ -54,7 +54,7 @@ vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)
                     "VMOVDQA %%ymm3, 96(%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
-                    : "ymm0", "ymm1", "ymm2", "ymm3", "memory");
+                    : "memory");
             }
             remainder = ccount % 16;
             for(i = 0; i < remainder / 4; i++, p+=4, src+=4) {
@@ -62,7 +62,7 @@ vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)
                     "VMOVDQA %%ymm0, (%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
-                    : "ymm0", "memory");
+                    : "memory");
             }
             remainder %= 4;
             for(i = 0; i < remainder; i++, p++, src++) {
@@ -89,8 +89,7 @@ vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)
                     "VMOVDQA %%ymm7, 96(%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
-                    : "ymm0", "ymm1", "ymm2", "ymm3",
-                      "ymm4", "ymm5", "ymm6", "ymm7", "memory");
+                    : "memory");
             }
             remainder = ccount % 16;
             for(i = 0; i < remainder / 4; i++, p+=4, src+=4) {
@@ -100,7 +99,7 @@ vdev_raidz_generate_parity_p_avx(raidz_map_t *rm)
                     "VMOVDQA %%ymm1, (%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
-                    : "ymm0", "ymm1", "memory");
+                    : "memory");
             }
             remainder %= 4;
             for(i = 0; i < remainder; i++, p++, src++) {
@@ -140,7 +139,7 @@ vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts)
             "VMOVDQA %%ymm3, 96(%[dst])"
             :
             : [dst] "r" (dst), [src] "r" (src)
-            : "ymm0", "ymm1", "ymm2", "ymm3", "memory");
+            : "memory");
     }
     remainder = xcount % 16;
     for (i = 0; i < remainder / 4; i++, src+=4, dst+=4) {
@@ -148,7 +147,7 @@ vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts)
             "VMOVDQA %%ymm0, (%[dst])"
             :
             : [dst] "r" (dst), [src] "r" (src)
-            : "ymm0", "memory");
+            : "memory");
     }
     remainder %= 4;
         for(i = 0; i < remainder; i++, dst++, src++) {
@@ -184,8 +183,7 @@ vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts)
                 "VMOVDQA %%ymm7, 96(%[dst])\n"
                 :
                 : [dst] "r" (dst), [src] "r" (src)
-                : "ymm0", "ymm1", "ymm2", "ymm3",
-                  "ymm4", "ymm5", "ymm6", "ymm7", "memory");
+                : "memory");
         }
         remainder = count % 16;
         for (i = 0; i < remainder / 4; i++, src+=4, dst+=4) {
@@ -194,8 +192,7 @@ vdev_raidz_reconstruct_p_avx(raidz_map_t *rm, int *tgts, int ntgts)
                 "VXORPS %%ymm0, %%ymm1, %%ymm1\n"
                 "VMOVDQA %%ymm1, (%[dst])"
                 :
-                : [dst] "r" (dst), [src] "r" (src)
-                : "ymm0", "ymm1");
+                : [dst] "r" (dst), [src] "r" (src));
         }
         remainder %= 4;
         for(i = 0; i < remainder; i++, dst++, src++) {
@@ -243,7 +240,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                         "VMOVDQA %%ymm3, 96(%[q])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [src] "r" (src)
-                        : "ymm0", "ymm1", "ymm2", "ymm3", "memory");
+                        : "memory");
                 }
                 remainder = ccnt % 16;
                 for (i = 0; i < remainder / 4; i++, src+=4, p+=4, q+=4) {
@@ -252,7 +249,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                         "VMOVDQA %%ymm0, (%[q])"
                         :
                         : [p] "r" (p), [q] "r" (q), [src] "r" (src)
-                        : "ymm0", "memory");
+                        : "memory");
                 }
                 remainder %= 4;
                 for(i = 0; i < remainder; i++, p++, src++, q++) {
@@ -272,7 +269,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                         "VMOVDQA %%ymm0, 96(%[q])\n"
                         :
                         : [p] "r" (p), [q] "r" (q)
-                        : "ymm0", "memory");
+                        : "memory");
                 }
                 remainder = pcnt % 16;
                 for (i = 0; i < remainder / 4; i++, p+=4, q+=4) {
@@ -281,7 +278,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                         "VMOVDQA %%ymm0, (%[q])"
                         :
                         : [p] "r" (p), [q] "r" (q)
-                        : "ymm0", "memory");
+                        : "memory");
                 }
                 remainder %= 4;
                 for(i = 0; i < remainder; i++, p++, q++) {
@@ -371,8 +368,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                     "VMOVDQA %%ymm1, 96(%[q])\n"
                     :
                     : [p] "r" (p), [q] "r" (q), [src] "r" (src)
-                    : "rax", "ymm0", "ymm1", "xmm2",
-                      "xmm3", "ymm4", "xmm5", "xmm6", "memory");
+                    : "rax", "memory");
             }
             remainder = ccnt % 16;
             for (i = 0; i < remainder / 4; i++, src+=4, p+=4, q+=4) {
@@ -399,8 +395,7 @@ vdev_raidz_generate_parity_pq_avx(raidz_map_t *rm)
                     "VMOVDQA %%ymm1, (%[q])"
                     :
                     : [p] "r" (p), [q] "r" (q), [src] "r" (src)
-                    : "rax", "ymm0", "ymm1", "xmm2",
-                      "xmm3", "ymm4", "xmm5", "memory");
+                    : "rax", "memory");
             }
             remainder %= 4;
             for(i = 0; i < remainder; i++, p++, src++, q++) {
@@ -550,7 +545,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VMOVDQA %%ymm3, 96(%[dst])\n"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
-                    : "ymm0", "ymm1", "ymm2", "ymm3", "memory");
+                    : "memory");
             }
             remainder = count % 16;
             for (i = 0; i < remainder / 4; i++, src+=4, dst+=4) {
@@ -558,7 +553,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VMOVDQA %%ymm0, (%[dst])"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
-                    : "ymm0", "memory");
+                    : "memory");
             }
             remainder %= 4;
             for(i = 0; i < remainder; i++, src++, dst++) {
@@ -572,7 +567,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VMOVDQA %%ymm0, 96(%[dst])\n"
                     :
                     : [dst] "r" (dst)
-                    : "ymm0", "memory");
+                    : "memory");
             }
             remainder = (xcount - count) % 16;
             for (i = 0; i < remainder / 4; i++, dst+=4) {
@@ -580,7 +575,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VMOVDQA %%ymm0, (%[dst])"
                     :
                     : [dst] "r" (dst)
-                    : "ymm0", "memory");
+                    : "memory");
             }
             remainder %= 4;
             for(i = 0; i < remainder; i++, dst++) {
@@ -654,8 +649,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VMOVDQA %%ymm1, 96(%[dst])\n"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
-                    : "rax", "ymm0", "ymm1", "xmm2",
-                      "xmm3", "ymm4", "xmm5", "xmm6", "memory");
+                    : "rax", "memory");
             }
             remainder = count % 16;
             for (i = 0; i < remainder / 4; i++, src+=4, dst+=4) {
@@ -679,8 +673,7 @@ vdev_raidz_reconstruct_q_avx(raidz_map_t *rm, int *tgts, int ntgts)
                     "VMOVDQA %%ymm1, (%[dst])"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
-                    : "rax", "ymm0", "ymm1", "xmm2",
-                      "xmm3", "ymm4", "xmm5", "memory");
+                    : "rax", "memory");
             }
             remainder %= 4;
             for(i = 0; i < remainder; i++, src++, dst++) {
@@ -753,7 +746,7 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                         :
                         : [p] "r" (p), [q] "r" (q),
                           [r] "r" (r), [src] "r" (src)
-                        : "ymm0", "ymm1", "ymm2", "ymm3", "memory");
+                        : "memory");
                 }
                 remainder = ccnt % 16;
                 for (i = 0; i < remainder / 4; i++, src+=4, p+=4, q+=4, r+=4) {
@@ -764,7 +757,7 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                         :
                         : [p] "r" (p), [q] "r" (q),
                           [r] "r" (r), [src] "r" (src)
-                        : "ymm0", "memory");
+                        : "memory");
                 }
                 remainder %= 4;
                 for(i = 0; i < remainder; i++, p++, src++, q++, r++) {
@@ -789,7 +782,7 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                         "VMOVDQA %%ymm0, 96(%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [r] "r" (r)
-                        : "ymm0", "memory");
+                        : "memory");
                 }
                 remainder = pcnt % 16;
                 for (i = 0; i < remainder / 4; i++, p+=4, q+=4, r+=4) {
@@ -799,7 +792,7 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                         "VMOVDQA %%ymm0, (%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [r] "r" (r)
-                        : "ymm0", "memory");
+                        : "memory");
                 }
                 remainder %= 4;
                 for(i = 0; i < remainder; i++, p++, q++, r++) {
@@ -971,8 +964,7 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     :
                     : [p] "r" (p), [q] "r" (q),
                       [r] "r" (r), [src] "r" (src)
-                    : "rax", "ymm0", "ymm1", "xmm2",
-                      "xmm3", "ymm4", "xmm5", "xmm6", "memory");
+                    : "rax", "memory");
             }
             remainder = ccnt % 16;
             for (i = 0; i < remainder / 4; i++, src+=4, p+=4, q+=4, r+=4) {
@@ -1021,8 +1013,7 @@ vdev_raidz_generate_parity_pqr_avx(raidz_map_t *rm)
                     :
                     : [p] "r" (p), [q] "r" (q),
                       [r] "r" (r), [src] "r" (src)
-                    : "rax", "ymm0", "ymm1", "xmm2",
-                      "xmm3", "ymm4", "xmm5", "xmm6", "memory");
+                    : "rax", "memory");
             }
             remainder %= 4;
             for(i = 0; i < remainder; i++, p++, src++, q++, r++) {

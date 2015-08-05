@@ -54,7 +54,7 @@ vdev_raidz_generate_parity_p_sse4(raidz_map_t *rm)
                     "MOVDQA %%xmm3, 48(%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
-                    : "xmm0", "xmm1", "xmm2", "xmm3", "memory");
+                    : "memory");
             }
             remainder = ccount % 8;
             for(i = 0; i < remainder / 2; i++, p+=2, src+=2) {
@@ -62,7 +62,7 @@ vdev_raidz_generate_parity_p_sse4(raidz_map_t *rm)
                     "MOVDQA %%xmm0, (%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
-                    : "xmm0", "memory");
+                    : "memory");
             }
             remainder %= 2;
             if (remainder > 0) {
@@ -89,8 +89,7 @@ vdev_raidz_generate_parity_p_sse4(raidz_map_t *rm)
                     "MOVDQA %%xmm7, 48(%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
-                    : "xmm0", "xmm1", "xmm2", "xmm3",
-                      "xmm4", "xmm5", "xmm6", "xmm7", "memory");
+                    : "memory");
             }
             remainder = ccount % 8;
             for(i = 0; i < remainder / 2; i++, p+=2, src+=2) {
@@ -100,7 +99,7 @@ vdev_raidz_generate_parity_p_sse4(raidz_map_t *rm)
                     "MOVDQA %%xmm1, (%[p])\n"
                     :
                     : [p] "r" (p), [src] "r" (src)
-                    : "xmm0", "xmm1", "memory");
+                    : "memory");
             }
             remainder %= 2;
             if (remainder > 0) {
@@ -140,7 +139,7 @@ vdev_raidz_reconstruct_p_sse4(raidz_map_t *rm, int *tgts, int ntgts)
             "MOVDQA %%xmm3, 48(%[dst])"
             :
             : [dst] "r" (dst), [src] "r" (src)
-            : "xmm0", "xmm1", "xmm2", "xmm3", "memory");
+            : "memory");
     }
     remainder = xcount % 8;
     for (i = 0; i < remainder / 2; i++, src+=2, dst+=2) {
@@ -148,7 +147,7 @@ vdev_raidz_reconstruct_p_sse4(raidz_map_t *rm, int *tgts, int ntgts)
             "MOVDQA %%xmm0, (%[dst])"
             :
             : [dst] "r" (dst), [src] "r" (src)
-            : "xmm0", "memory");
+            : "memory");
     }
     remainder %= 2;
     if (remainder > 0) {
@@ -184,8 +183,7 @@ vdev_raidz_reconstruct_p_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                 "MOVDQA %%xmm7, 48(%[dst])\n"
                 :
                 : [dst] "r" (dst), [src] "r" (src)
-                : "xmm0", "xmm1", "xmm2", "xmm3",
-                  "xmm4", "xmm5", "xmm6", "xmm7", "memory");
+                : "memory");
         }
         remainder = count % 8;
         for (i = 0; i < remainder / 2; i++, src+=2, dst+=2) {
@@ -194,8 +192,7 @@ vdev_raidz_reconstruct_p_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                 "PXOR %%xmm0, %%xmm1\n"
                 "MOVDQA %%xmm1, (%[dst])"
                 :
-                : [dst] "r" (dst), [src] "r" (src)
-                : "xmm0", "xmm1");
+                : [dst] "r" (dst), [src] "r" (src));
         }
         remainder %= 2;
         if (remainder > 0) {
@@ -243,7 +240,7 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
                         "MOVDQA %%xmm3, 48(%[q])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [src] "r" (src)
-                        : "xmm0", "xmm1", "xmm2", "xmm3", "memory");
+                        : "memory");
                 }
                 remainder = ccnt % 8;
                 for (i = 0; i < remainder / 2; i++, src+=2, p+=2, q+=2) {
@@ -252,7 +249,7 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
                         "MOVDQA %%xmm0, (%[q])"
                         :
                         : [p] "r" (p), [q] "r" (q), [src] "r" (src)
-                        : "xmm0", "memory");
+                        : "memory");
                 }
                 remainder %= 2;
                 if (remainder > 0) {
@@ -272,7 +269,7 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
                         "MOVDQA %%xmm0, 48(%[q])\n"
                         :
                         : [p] "r" (p), [q] "r" (q)
-                        : "xmm0", "memory");
+                        : "memory");
                 }
                 remainder = pcnt % 8;
                 for (i = 0; i < remainder / 2; i++, p+=2, q+=2) {
@@ -281,7 +278,7 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
                         "MOVDQA %%xmm0, (%[q])"
                         :
                         : [p] "r" (p), [q] "r" (q)
-                        : "xmm0", "memory");
+                        : "memory");
                 }
                 remainder %= 2;
                 if (remainder > 0) {
@@ -350,8 +347,7 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
                     "MOVDQA %%xmm1, 48(%[q])\n"
                     :
                     : [p] "r" (p), [q] "r" (q), [src] "r" (src)
-                    : "rax", "xmm0", "xmm1", "xmm2",
-                      "xmm3", "xmm5", "xmm6", "memory");
+                    : "rax", "memory");
             }
             remainder = ccnt % 8;
             for (i = 0; i < remainder / 2; i++, src+=2, p+=2, q+=2) {
@@ -372,8 +368,7 @@ vdev_raidz_generate_parity_pq_sse4(raidz_map_t *rm)
                     "MOVDQA %%xmm1, (%[q])"
                     :
                     : [p] "r" (p), [q] "r" (q), [src] "r" (src)
-                    : "rax", "xmm0", "xmm1", "xmm2",
-                      "xmm3", "xmm4", "xmm5", "memory");
+                    : "rax", "memory");
             }
             remainder %= 2;
             if (remainder > 0) {
@@ -524,7 +519,7 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                     "MOVDQA %%xmm3, 48(%[dst])\n"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
-                    : "xmm0", "xmm1", "xmm2", "xmm3", "memory");
+                    : "memory");
             }
             remainder = count % 8;
             for (i = 0; i < remainder / 2; i++, src+=2, dst+=2) {
@@ -532,7 +527,7 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                     "MOVDQA %%xmm0, (%[dst])"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
-                    : "xmm0", "memory");
+                    : "memory");
             }
             remainder %= 2;
             if (remainder > 0) {
@@ -547,7 +542,7 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                     "MOVDQA %%xmm0, 48(%[dst])\n"
                     :
                     : [dst] "r" (dst)
-                    : "xmm0", "memory");
+                    : "memory");
             }
             remainder = (xcount - count) % 8;
             for (i = 0; i < remainder / 2; i++, dst+=2) {
@@ -555,7 +550,7 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                     "MOVDQA %%xmm0, (%[dst])"
                     :
                     : [dst] "r" (dst)
-                    : "xmm0", "memory");
+                    : "memory");
             }
             remainder %= 2;
             if (remainder > 0) {
@@ -608,8 +603,7 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                     "MOVDQA %%xmm1, 48(%[dst])\n"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
-                    : "rax", "xmm0", "xmm1", "xmm2",
-                      "xmm3", "xmm5", "xmm6", "memory");
+                    : "rax", "memory");
             }
             remainder = count % 8;
             for (i = 0; i < remainder / 2; i++, src+=2, dst+=2) {
@@ -627,8 +621,7 @@ vdev_raidz_reconstruct_q_sse4(raidz_map_t *rm, int *tgts, int ntgts)
                     "MOVDQA %%xmm1, (%[dst])"
                     :
                     : [dst] "r" (dst), [src] "r" (src)
-                    : "rax", "xmm0", "xmm1", "xmm2",
-                      "xmm3", "xmm4", "xmm5", "memory");
+                    : "rax", "memory");
             }
             remainder %= 2;
             if (remainder > 0) {
@@ -702,7 +695,7 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                         :
                         : [p] "r" (p), [q] "r" (q),
                           [r] "r" (r), [src] "r" (src)
-                        : "xmm0", "xmm1", "xmm2", "xmm3", "memory");
+                        : "memory");
                 }
                 remainder = ccnt % 8;
                 for (i = 0; i < remainder / 2; i++, src+=2, p+=2, q+=2, r+=2) {
@@ -713,7 +706,7 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                         :
                         : [p] "r" (p), [q] "r" (q),
                           [r] "r" (r), [src] "r" (src)
-                        : "xmm0", "memory");
+                        : "memory");
                 }
                 remainder %= 2;
                 if (remainder > 0) {
@@ -738,7 +731,7 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                         "MOVDQA %%xmm0, 48(%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [r] "r" (r)
-                        : "xmm0", "memory");
+                        : "memory");
                 }
                 remainder = pcnt % 8;
                 for (i = 0; i < remainder / 2; i++, p+=2, q+=2, r+=2) {
@@ -748,7 +741,7 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                         "MOVDQA %%xmm0, (%[r])\n"
                         :
                         : [p] "r" (p), [q] "r" (q), [r] "r" (r)
-                        : "xmm0", "memory");
+                        : "memory");
                 }
                 remainder %= 2;
                 if (remainder > 0) {
@@ -867,8 +860,7 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                     :
                     : [p] "r" (p), [q] "r" (q),
                       [r] "r" (r), [src] "r" (src)
-                    : "rax", "xmm0", "xmm1",
-                      "xmm3", "xmm6", "memory");
+                    : "rax", "memory");
             }
             remainder = ccnt % 8;
             for (i = 0; i < remainder / 2; i++, src+=2, p+=2, q+=2, r+=2) {
@@ -903,8 +895,7 @@ vdev_raidz_generate_parity_pqr_sse4(raidz_map_t *rm)
                     :
                     : [p] "r" (p), [q] "r" (q),
                       [r] "r" (r), [src] "r" (src)
-                    : "rax", "xmm0", "xmm1",
-                      "xmm3", "xmm6", "memory");
+                    : "rax", "memory");
             }
             remainder %= 2;
             if (remainder > 0) {
