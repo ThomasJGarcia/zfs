@@ -41,92 +41,120 @@
 	asm volatile("vmovd %0,%%"#reg : : "r"(val));	\
 	asm volatile("vpshufd $0,%"#reg",%"#reg)
 
-#define	LOAD8_SRC_AVX128(src)					\
-	asm volatile("vmovdqa %0,%%xmm0" : : "m" (*(src+0)));	\
-	asm volatile("vmovdqa %0,%%xmm4" : : "m" (*(src+2)));	\
-	asm volatile("vmovdqa %0,%%xmm8" : : "m" (*(src+4)));	\
-	asm volatile("vmovdqa %0,%%xmm12" : : "m" (*(src+6)))
+#define	LOAD8_SRC_AVX128(SRC)						\
+    asm volatile("vmovdqa (%[src]), %%xmm0\n" \
+                 "vmovdqa 16(%[src]), %%xmm4\n" \
+                 "vmovdqa 32(%[src]), %%xmm8\n" \
+                 "vmovdqa 48(%[src]), %%xmm12\n" \
+            : \
+            : [src] "r" (SRC) \
+            : "memory");
 
-#define	COMPUTE8_P_AVX128(p)					\
-	asm volatile("vmovdqa %0,%%xmm1" : : "m" (*(p+0)));	\
-	asm volatile("vmovdqa %0,%%xmm5" : : "m" (*(p+2)));	\
-	asm volatile("vmovdqa %0,%%xmm9" : : "m" (*(p+4)));	\
-	asm volatile("vmovdqa %0,%%xmm13" : : "m" (*(p+6)));	\
-	asm volatile("vpxor %xmm0,%xmm1,%xmm1");		\
-	asm volatile("vpxor %xmm4,%xmm5,%xmm5");		\
-	asm volatile("vpxor %xmm8,%xmm9,%xmm9");		\
-	asm volatile("vpxor %xmm12,%xmm13,%xmm13");		\
-	asm volatile("vmovdqa %%xmm1,%0" : "=m" (*(p+0)));	\
-	asm volatile("vmovdqa %%xmm5,%0" : "=m" (*(p+2)));	\
-	asm volatile("vmovdqa %%xmm9,%0" : "=m" (*(p+4)));	\
-	asm volatile("vmovdqa %%xmm13,%0" : "=m" (*(p+6)))
+#define	COMPUTE8_P_AVX128(P)					\
+    asm volatile("vmovdqa (%[p]), %%xmm1\n" \
+                 "vmovdqa 16(%[p]), %%xmm5\n" \
+                 "vmovdqa 32(%[p]), %%xmm9\n" \
+                 "vmovdqa 48(%[p]), %%xmm13\n" \
+                 "vpxor %%xmm0, %%xmm1, %%xmm1\n" \
+                 "vpxor %%xmm4, %%xmm5, %%xmm5\n" \
+                 "vpxor %%xmm8, %%xmm9, %%xmm9\n" \
+                 "vpxor %%xmm12, %%xmm13, %%xmm13\n" \
+                 "vmovdqa %%xmm1, (%[p])\n" \
+                 "vmovdqa %%xmm5, 16(%[p])\n" \
+                 "vmovdqa %%xmm9, 32(%[p])\n" \
+                 "vmovdqa %%xmm13, 48(%[p])\n" \
+            : \
+            : [p] "r" (P) \
+            : "memory");
 
-#define	COMPUTE8_Q_AVX128(q)						\
-	asm volatile("vmovdqa %0,%%xmm1" : : "m" (*(q+0)));		\
-	asm volatile("vmovdqa %0,%%xmm5" : : "m" (*(q+2)));		\
-	asm volatile("vmovdqa %0,%%xmm9" : : "m" (*(q+4)));		\
-	asm volatile("vmovdqa %0,%%xmm13" : : "m" (*(q+6)));		\
-	MAKE_CST32_AVX128(xmm3, 0x1d1d1d1d);				\
-	asm volatile("vpxor %xmm14, %xmm14, %xmm14");			\
-	asm volatile("vpcmpgtb %xmm1, %xmm14, %xmm2");			\
-	asm volatile("vpcmpgtb %xmm5, %xmm14, %xmm6");			\
-	asm volatile("vpcmpgtb %xmm9, %xmm14, %xmm10");			\
-	asm volatile("vpcmpgtb %xmm13, %xmm14, %xmm14");		\
-	asm volatile("vpaddb %xmm1,%xmm1,%xmm1");			\
-	asm volatile("vpaddb %xmm5,%xmm5,%xmm5");			\
-	asm volatile("vpaddb %xmm9,%xmm9,%xmm9");			\
-	asm volatile("vpaddb %xmm13,%xmm13,%xmm13");			\
-	asm volatile("vpand %xmm3,%xmm2,%xmm2");			\
-	asm volatile("vpand %xmm3,%xmm6,%xmm6");			\
-	asm volatile("vpand %xmm3,%xmm10,%xmm10");			\
-	asm volatile("vpand %xmm3,%xmm14,%xmm14");			\
-	asm volatile("vpxor %xmm2,%xmm1,%xmm1");			\
-	asm volatile("vpxor %xmm6,%xmm5,%xmm5");			\
-	asm volatile("vpxor %xmm10,%xmm9,%xmm9");			\
-	asm volatile("vpxor %xmm14,%xmm13,%xmm13");			\
-	asm volatile("vpxor %xmm0,%xmm1,%xmm1");			\
-	asm volatile("vpxor %xmm4,%xmm5,%xmm5");			\
-	asm volatile("vpxor %xmm8,%xmm9,%xmm9");			\
-	asm volatile("vpxor %xmm12,%xmm13,%xmm13");			\
-	asm volatile("vmovdqa %%xmm1,%0" : "=m" (*(q+0)));		\
-	asm volatile("vmovdqa %%xmm5,%0" : "=m" (*(q+2)));		\
-	asm volatile("vmovdqa %%xmm9,%0" : "=m" (*(q+4)));		\
-	asm volatile("vmovdqa %%xmm13,%0" : "=m" (*(q+6)))
+#define	COMPUTE8_Q_AVX128(Q)						\
+    asm volatile("vmovdqa (%[q]), %%xmm1\n" \
+                 "vmovdqa 16(%[q]), %%xmm5\n" \
+                 "vmovdqa 32(%[q]), %%xmm9\n" \
+                 "vmovdqa 48(%[q]), %%xmm13\n" \
+                 "vmovd %[cast], %%xmm3\n" \
+                 "vpshufd $0, %%xmm3, %%xmm3\n" \
+                 "vpxor %%xmm14, %%xmm14, %%xmm14\n" \
+                 "vpcmpgtb %%xmm1, %%xmm14, %%xmm2\n" \
+                 "vpcmpgtb %%xmm5, %%xmm14, %%xmm6\n" \
+                 "vpcmpgtb %%xmm9, %%xmm14, %%xmm10\n" \
+                 "vpcmpgtb %%xmm13, %%xmm14, %%xmm14\n" \
+                 "vpaddb %%xmm1, %%xmm1, %%xmm1\n" \
+                 "vpaddb %%xmm5, %%xmm5, %%xmm5\n" \
+                 "vpaddb %%xmm9, %%xmm9, %%xmm9\n" \
+                 "vpaddb %%xmm13, %%xmm13, %%xmm13\n" \
+                 "vpand %%xmm3, %%xmm2, %%xmm2\n" \
+                 "vpand %%xmm3, %%xmm6, %%xmm6\n" \
+                 "vpand %%xmm3, %%xmm10, %%xmm10\n" \
+                 "vpand %%xmm3, %%xmm14, %%xmm14\n" \
+                 "vpxor %%xmm2, %%xmm1, %%xmm1\n" \
+                 "vpxor %%xmm6, %%xmm5, %%xmm5\n" \
+                 "vpxor %%xmm10, %%xmm9, %%xmm9\n" \
+                 "vpxor %%xmm14, %%xmm13, %%xmm13\n" \
+                 "vpxor %%xmm0, %%xmm1, %%xmm1\n" \
+                 "vpxor %%xmm4, %%xmm5, %%xmm5\n" \
+                 "vpxor %%xmm8, %%xmm9, %%xmm9\n" \
+                 "vpxor %%xmm12, %%xmm13, %%xmm13\n" \
+                 "vmovdqa %%xmm1, (%[q])\n" \
+                 "vmovdqa %%xmm5, 16(%[q])\n" \
+                 "vmovdqa %%xmm9, 32(%[q])\n" \
+                 "vmovdqa %%xmm13, 48(%[q])\n" \
+            : \
+            : [q] "r" (Q), [cast] "r" (0x1d1d1d1d) \
+            : "memory");
 
-#define	COMPUTE8_R_AVX128(r)						\
-	asm volatile("vmovdqa %0,%%xmm1" : : "m" (*(r+0)));		\
-	asm volatile("vmovdqa %0,%%xmm5" : : "m" (*(r+2)));		\
-	asm volatile("vmovdqa %0,%%xmm9" : : "m" (*(r+4)));		\
-	asm volatile("vmovdqa %0,%%xmm13" : : "m" (*(r+6)));		\
-	MAKE_CST32_AVX128(xmm3, 0x1d1d1d1d);				\
-	for (j = 0; j < 2; j++) {					\
-		asm volatile("vpxor %xmm14, %xmm14, %xmm14");		\
-		asm volatile("vpcmpgtb %xmm1, %xmm14, %xmm2");		\
-		asm volatile("vpcmpgtb %xmm5, %xmm14, %xmm6");		\
-		asm volatile("vpcmpgtb %xmm9, %xmm14, %xmm10");		\
-		asm volatile("vpcmpgtb %xmm13, %xmm14, %xmm14");	\
-		asm volatile("vpaddb %xmm1,%xmm1,%xmm1");		\
-		asm volatile("vpaddb %xmm5,%xmm5,%xmm5");		\
-		asm volatile("vpaddb %xmm9,%xmm9,%xmm9");		\
-		asm volatile("vpaddb %xmm13,%xmm13,%xmm13");		\
-		asm volatile("vpand %xmm3,%xmm2,%xmm2");		\
-		asm volatile("vpand %xmm3,%xmm6,%xmm6");		\
-		asm volatile("vpand %xmm3,%xmm10,%xmm10");		\
-		asm volatile("vpand %xmm3,%xmm14,%xmm14");		\
-		asm volatile("vpxor %xmm2,%xmm1,%xmm1");		\
-		asm volatile("vpxor %xmm6,%xmm5,%xmm5");		\
-		asm volatile("vpxor %xmm10,%xmm9,%xmm9");		\
-		asm volatile("vpxor %xmm14,%xmm13,%xmm13");		\
-	}								\
-	asm volatile("vpxor %xmm0,%xmm1,%xmm1");			\
-	asm volatile("vpxor %xmm4,%xmm5,%xmm5");			\
-	asm volatile("vpxor %xmm8,%xmm9,%xmm9");			\
-	asm volatile("vpxor %xmm12,%xmm13,%xmm13");			\
-	asm volatile("vmovdqa %%xmm1,%0" : "=m" (*(r+0)));		\
-	asm volatile("vmovdqa %%xmm5,%0" : "=m" (*(r+2)));		\
-	asm volatile("vmovdqa %%xmm9,%0" : "=m" (*(r+4)));		\
-	asm volatile("vmovdqa %%xmm13,%0" : "=m" (*(r+6)))
-
+#define	COMPUTE8_R_AVX128(R)						\
+    asm volatile("vmovdqa (%[r]), %%xmm1\n" \
+                 "vmovdqa 16(%[r]), %%xmm5\n" \
+                 "vmovdqa 32(%[r]), %%xmm9\n" \
+                 "vmovdqa 48(%[r]), %%xmm13\n" \
+                 "vmovd %[cast], %%xmm3\n" \
+                 "vpshufd $0, %%xmm3, %%xmm3\n" \
+                 "vpxor %%xmm14, %%xmm14, %%xmm14\n" \
+                 "vpcmpgtb %%xmm1, %%xmm14, %%xmm2\n" \
+                 "vpcmpgtb %%xmm5, %%xmm14, %%xmm6\n" \
+                 "vpcmpgtb %%xmm9, %%xmm14, %%xmm10\n" \
+                 "vpcmpgtb %%xmm13, %%xmm14, %%xmm14\n" \
+                 "vpaddb %%xmm1, %%xmm1, %%xmm1\n" \
+                 "vpaddb %%xmm5, %%xmm5, %%xmm5\n" \
+                 "vpaddb %%xmm9, %%xmm9, %%xmm9\n" \
+                 "vpaddb %%xmm13, %%xmm13, %%xmm13\n" \
+                 "vpand %%xmm3, %%xmm2, %%xmm2\n" \
+                 "vpand %%xmm3, %%xmm6, %%xmm6\n" \
+                 "vpand %%xmm3, %%xmm10, %%xmm10\n" \
+                 "vpand %%xmm3, %%xmm14, %%xmm14\n" \
+                 "vpxor %%xmm2, %%xmm1, %%xmm1\n" \
+                 "vpxor %%xmm6, %%xmm5, %%xmm5\n" \
+                 "vpxor %%xmm10, %%xmm9, %%xmm9\n" \
+                 "vpxor %%xmm14, %%xmm13, %%xmm13\n" \
+                 "vpxor %%xmm14, %%xmm14, %%xmm14\n" \
+                 "vpcmpgtb %%xmm1, %%xmm14, %%xmm2\n" \
+                 "vpcmpgtb %%xmm5, %%xmm14, %%xmm6\n" \
+                 "vpcmpgtb %%xmm9, %%xmm14, %%xmm10\n" \
+                 "vpcmpgtb %%xmm13, %%xmm14, %%xmm14\n" \
+                 "vpaddb %%xmm1, %%xmm1, %%xmm1\n" \
+                 "vpaddb %%xmm5, %%xmm5, %%xmm5\n" \
+                 "vpaddb %%xmm9, %%xmm9, %%xmm9\n" \
+                 "vpaddb %%xmm13, %%xmm13, %%xmm13\n" \
+                 "vpand %%xmm3, %%xmm2, %%xmm2\n" \
+                 "vpand %%xmm3, %%xmm6, %%xmm6\n" \
+                 "vpand %%xmm3, %%xmm10, %%xmm10\n" \
+                 "vpand %%xmm3, %%xmm14, %%xmm14\n" \
+                 "vpxor %%xmm2, %%xmm1, %%xmm1\n" \
+                 "vpxor %%xmm6, %%xmm5, %%xmm5\n" \
+                 "vpxor %%xmm10, %%xmm9, %%xmm9\n" \
+                 "vpxor %%xmm14, %%xmm13, %%xmm13\n" \
+                 "vpxor %%xmm0, %%xmm1, %%xmm1\n" \
+                 "vpxor %%xmm4, %%xmm5, %%xmm5\n" \
+                 "vpxor %%xmm8, %%xmm9, %%xmm9\n" \
+                 "vpxor %%xmm12, %%xmm13, %%xmm13\n" \
+                 "vmovdqa %%xmm1, (%[r])\n" \
+                 "vmovdqa %%xmm5, 16(%[r])\n" \
+                 "vmovdqa %%xmm9, 32(%[r])\n" \
+                 "vmovdqa %%xmm13, 48(%[r])\n" \
+            : \
+            : [r] "r" (R), [cast] "r" (0x1d1d1d1d) \
+            : "memory");
 
 static int raidz_parity_have_avx128(void) {
 	return (boot_cpu_has(X86_FEATURE_AVX));
@@ -193,7 +221,7 @@ vdev_raidz_pqr_avx128(const void *buf, uint64_t size, void *private)
 	struct pqr_struct *pqr = private;
 	const uint64_t *src = buf;
 	uint64_t mask;
-	int i, j, cnt = size / sizeof (src[0]);
+	int i, cnt = size / sizeof (src[0]);
 
 	ASSERT(pqr->p && pqr->q && pqr->r);
 	kfpu_begin();
