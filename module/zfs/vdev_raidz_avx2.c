@@ -49,8 +49,7 @@
                  "vmovdqa 64(%[src]), %%ymm8\n" \
                  "vmovdqa 96(%[src]), %%ymm12\n" \
             : \
-            : [src] "r" (SRC) \
-            : "memory");
+            : [src] "r" (SRC)); 
 
 #define	COMPUTE16_P_AVX2(P)					\
     asm volatile("vmovdqa (%[p]), %%ymm1\n" \
@@ -66,8 +65,7 @@
                  "vmovdqa %%ymm9, 64(%[p])\n" \
                  "vmovdqa %%ymm13, 96(%[p])\n" \
             : \
-            : [p] "r" (P) \
-            : "memory");
+            : [p] "r" (P)); 
 
 #define	COMPUTE16_Q_AVX2(Q)						\
     asm volatile("vmovdqa (%[q]), %%ymm1\n" \
@@ -100,8 +98,7 @@
                  "vmovdqa %%ymm9, 64(%[q])\n" \
                  "vmovdqa %%ymm13, 96(%[q])\n" \
             : \
-            : [q] "r" (Q) \
-            : "memory");
+            : [q] "r" (Q)); 
 
 #define	COMPUTE16_R_AVX2(R)						\
     asm volatile("vmovdqa (%[r]), %%ymm1\n" \
@@ -151,8 +148,7 @@
                  "vmovdqa %%ymm9, 64(%[r])\n" \
                  "vmovdqa %%ymm13, 96(%[r])\n" \
             : \
-            : [r] "r" (R) \
-            : "memory");
+            : [r] "r" (R)); 
 
 static int raidz_parity_have_avx2(void) {
 	return (boot_cpu_has(X86_FEATURE_AVX2));

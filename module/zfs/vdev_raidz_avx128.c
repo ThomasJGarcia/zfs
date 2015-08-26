@@ -49,8 +49,7 @@
                  "vmovdqa 32(%[src]), %%xmm8\n" \
                  "vmovdqa 48(%[src]), %%xmm12\n" \
             : \
-            : [src] "r" (SRC) \
-            : "memory");
+            : [src] "r" (SRC)); 
 
 #define	COMPUTE8_P_AVX128(P)					\
     asm volatile("vmovdqa (%[p]), %%xmm1\n" \
@@ -66,8 +65,7 @@
                  "vmovdqa %%xmm9, 32(%[p])\n" \
                  "vmovdqa %%xmm13, 48(%[p])\n" \
             : \
-            : [p] "r" (P) \
-            : "memory");
+            : [p] "r" (P)); 
 
 #define	COMPUTE8_Q_AVX128(Q)						\
     asm volatile("vmovdqa (%[q]), %%xmm1\n" \
@@ -100,8 +98,7 @@
                  "vmovdqa %%xmm9, 32(%[q])\n" \
                  "vmovdqa %%xmm13, 48(%[q])\n" \
             : \
-            : [q] "r" (Q) \
-            : "memory");
+            : [q] "r" (Q)); 
 
 #define	COMPUTE8_R_AVX128(R)						\
     asm volatile("vmovdqa (%[r]), %%xmm1\n" \
@@ -151,8 +148,7 @@
                  "vmovdqa %%xmm9, 32(%[r])\n" \
                  "vmovdqa %%xmm13, 48(%[r])\n" \
             : \
-            : [r] "r" (R) \
-            : "memory");
+            : [r] "r" (R)); 
 
 static int raidz_parity_have_avx128(void) {
 	return (boot_cpu_has(X86_FEATURE_AVX));

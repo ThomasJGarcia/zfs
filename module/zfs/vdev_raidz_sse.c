@@ -49,8 +49,7 @@
                  "movdqa 32(%[src]), %%xmm8\n" \
                  "movdqa 48(%[src]), %%xmm12\n" \
             : \
-            : [src] "r" (SRC) \
-            : "memory");
+            : [src] "r" (SRC)); 
 
 #define	COMPUTE8_P_SSE(P)						\
     asm volatile("movdqa (%[p]), %%xmm1\n" \
@@ -66,8 +65,7 @@
                  "movdqa %%xmm9, 32(%[p])\n" \
                  "movdqa %%xmm13, 48(%[p])\n" \
             : \
-            : [p] "r" (P) \
-            : "memory");
+            : [p] "r" (P)); 
 
 #define	COMPUTE8_Q_SSE(Q)							\
     asm volatile("movdqa (%[q]), %%xmm1\n" \
@@ -103,8 +101,7 @@
                  "movdqa %%xmm9, 32(%[q])\n" \
                  "movdqa %%xmm13, 48(%[q])\n" \
             : \
-            : [q] "r" (Q) \
-            : "memory");
+            : [q] "r" (Q)); 
 
 #define	COMPUTE8_R_SSE(R)							\
     asm volatile("movdqa (%[r]), %%xmm1\n" \
@@ -160,8 +157,7 @@
                  "movdqa %%xmm9, 32(%[r])\n" \
                  "movdqa %%xmm13, 48(%[r])\n" \
             : \
-            : [r] "r" (R) \
-            : "memory");
+            : [r] "r" (R)); 
 
 static int raidz_parity_have_sse(void) {
 	return (1);
