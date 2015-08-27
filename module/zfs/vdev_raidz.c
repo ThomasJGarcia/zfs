@@ -692,18 +692,6 @@ const struct raidz_parity_calls * const raidz1_parity_algos[] = {
 #if defined(__x86_64__)
 	&raidz1_sse,
 #endif
-#if defined(__x86_64__) && defined(CONFIG_AS_AVX)
-	&raidz1_avx128,
-#endif
-#if defined(__x86_64__) && defined(CONFIG_AS_AVX2)
-	&raidz1_avx2,
-#endif
-#if defined(__aarch64__)
-	&raidz1_neonv8,
-	&raidz1_neonv8dbl,
-	&raidz1_neonv8d,
-	&raidz1_neonv8i,
-#endif
 	NULL
 };
 const struct raidz_parity_calls * const raidz2_parity_algos[] = {
@@ -711,36 +699,12 @@ const struct raidz_parity_calls * const raidz2_parity_algos[] = {
 #if defined(__x86_64__)
 	&raidz2_sse,
 #endif
-#if defined(__x86_64__) && defined(CONFIG_AS_AVX)
-	&raidz2_avx128,
-#endif
-#if defined(__x86_64__) && defined(CONFIG_AS_AVX2)
-	&raidz2_avx2,
-#endif
-#if defined(__aarch64__)
-	&raidz2_neonv8,
-	&raidz2_neonv8dbl,
-	&raidz2_neonv8d,
-	&raidz2_neonv8i,
-#endif
 	NULL
 };
 const struct raidz_parity_calls * const raidz3_parity_algos[] = {
 	&raidz3_c,
 #if defined(__x86_64__)
 	&raidz3_sse,
-#endif
-#if defined(__x86_64__) && defined(CONFIG_AS_AVX)
-	&raidz3_avx128,
-#endif
-#if defined(__x86_64__) && defined(CONFIG_AS_AVX2)
-	&raidz3_avx2,
-#endif
-#if defined(__aarch64__)
-	&raidz3_neonv8,
-	&raidz3_neonv8dbl,
-	&raidz3_neonv8d,
-	&raidz3_neonv8i,
 #endif
 	NULL
 };
