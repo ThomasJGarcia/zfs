@@ -25,7 +25,7 @@
 /*
  * Copyright 2011 Nexenta Systems, Inc. All rights reserved.
  * Copyright (c) 2012, Joyent, Inc. All rights reserved.
- * Copyright (c) 2013 by Delphix. All rights reserved.
+ * Copyright (c) 2012, 2014 by Delphix. All rights reserved.
  */
 
 #ifndef _SYS_ZFS_CONTEXT_H
@@ -41,6 +41,8 @@
 #include <sys/bitmap.h>
 #include <sys/cmn_err.h>
 #include <sys/kmem.h>
+#include <sys/kmem_cache.h>
+#include <sys/vmem.h>
 #include <sys/taskq.h>
 #include <sys/buf.h>
 #include <sys/param.h>
@@ -66,7 +68,9 @@
 #include <sys/sunddi.h>
 #include <sys/ctype.h>
 #include <sys/disp.h>
+#include <sys/trace.h>
 #include <linux/dcache_compat.h>
+#include <linux/utsname_compat.h>
 
 #else /* _KERNEL */
 
@@ -117,6 +121,7 @@
 #include <sys/fm/fs/zfs.h>
 #include <sys/sunddi.h>
 #include <sys/debug.h>
+#include <sys/utsname.h>
 
 /*
  * Stack
@@ -138,23 +143,21 @@
 #define	CE_PANIC	3	/* panic		*/
 #define	CE_IGNORE	4	/* print nothing	*/
 
-extern int aok;
-
 /*
  * ZFS debugging
  */
 
 extern void dprintf_setup(int *argc, char **argv);
-extern void __dprintf(const char *file, const char *func,
-    int line, const char *fmt, ...);
+
 extern void cmn_err(int, const char *, ...);
-extern void vcmn_err(int, const char *, __va_list);
+extern void vcmn_err(int, const char *, va_list);
 extern void panic(const char *, ...);
-extern void vpanic(const char *, __va_list);
+extern void vpanic(const char *, va_list);
 
 #define	fm_panic	panic
 
-#ifdef __sun
+extern int aok;
+
 /*
  * DTrace SDT probes have different signatures in userland than they do in
  * kernel.  If they're being used in kernel code, re-define them out of
@@ -200,19 +203,17 @@ extern void vpanic(const char *, __va_list);
  * "return (SET_ERROR(log_error(EINVAL, info)));" would log the error twice).
  */
 #define	SET_ERROR(err) (ZFS_SET_ERROR(err), err)
-#else
-#define	SET_ERROR(err) (err)
-#endif
+
 /*
- * Threads
+ * Threads.  TS_STACK_MIN is dictated by the minimum allowed pthread stack
+ * size.  While TS_STACK_MAX is somewhat arbitrary, it was selected to be
+ * large enough for the expected stack depth while small enough to avoid
+ * exhausting address space with high thread counts.
  */
 #define	TS_MAGIC		0x72f158ab4261e538ull
 #define	TS_RUN			0x00000002
-#ifdef __linux__
-#define	STACK_SIZE		8192	/* Linux x86 and amd64 */
-#else
-#define	STACK_SIZE		24576	/* Solaris */
-#endif
+#define	TS_STACK_MIN		PTHREAD_STACK_MIN
+#define	TS_STACK_MAX		(256 * 1024)
 
 /* in libzpool, p0 exists only to have its address taken */
 typedef struct proc {
@@ -232,6 +233,7 @@ typedef struct kthread {
 	kt_did_t	t_tid;
 	thread_func_t	t_func;
 	void *		t_arg;
+	pri_t		t_pri;
 } kthread_t;
 
 #define	curthread			zk_thread_current()
@@ -348,8 +350,8 @@ extern clock_t cv_timedwait_hires(kcondvar_t *cvp, kmutex_t *mp, hrtime_t tim,
     hrtime_t res, int flag);
 extern void cv_signal(kcondvar_t *cv);
 extern void cv_broadcast(kcondvar_t *cv);
-#define	cv_timedwait_interruptible(cv, mp, at)	cv_timedwait(cv, mp, at)
-#define	cv_wait_interruptible(cv, mp)		cv_wait(cv, mp)
+#define	cv_timedwait_sig(cv, mp, at)		cv_timedwait(cv, mp, at)
+#define	cv_wait_sig(cv, mp)			cv_wait(cv, mp)
 #define	cv_wait_io(cv, mp)			cv_wait(cv, mp)
 
 /*
@@ -392,7 +394,6 @@ extern void kstat_set_raw_ops(kstat_t *ksp,
 #define	KM_SLEEP		UMEM_NOFAIL
 #define	KM_PUSHPAGE		KM_SLEEP
 #define	KM_NOSLEEP		UMEM_DEFAULT
-#define	KM_NODEBUG		0x0
 #define	KMC_NODEBUG		UMC_NODEBUG
 #define	KMC_KMEM		0x0
 #define	KMC_VMEM		0x0
@@ -408,10 +409,13 @@ extern void kstat_set_raw_ops(kstat_t *ksp,
 #define	kmem_cache_alloc(_c, _f) umem_cache_alloc(_c, _f)
 #define	kmem_cache_free(_c, _b)	umem_cache_free(_c, _b)
 #define	kmem_debugging()	0
-#define	kmem_cache_reap_now(_c)		/* nothing */
+#define	kmem_cache_reap_now(_c)	umem_cache_reap_now(_c);
 #define	kmem_cache_set_move(_c, _cb)	/* nothing */
+#define	vmem_qcache_reap(_v)		/* nothing */
 #define	POINTER_INVALIDATE(_pp)		/* nothing */
 #define	POINTER_IS_VALID(_p)	0
+
+extern vmem_t *zio_arena;
 
 typedef umem_cache_t kmem_cache_t;
 
@@ -448,7 +452,6 @@ typedef struct taskq_ent {
 
 #define	TQ_SLEEP	KM_SLEEP	/* Can block for memory */
 #define	TQ_NOSLEEP	KM_NOSLEEP	/* cannot block for memory; may fail */
-#define	TQ_PUSHPAGE	KM_PUSHPAGE	/* Cannot perform I/O */
 #define	TQ_NOQUEUE	0x02		/* Do not enqueue if can't dispatch */
 #define	TQ_FRONT	0x08		/* Queue in front */
 
@@ -469,6 +472,7 @@ extern void	taskq_init_ent(taskq_ent_t *);
 extern void	taskq_destroy(taskq_t *);
 extern void	taskq_wait(taskq_t *);
 extern void	taskq_wait_id(taskq_t *, taskqid_t);
+extern void	taskq_wait_outstanding(taskq_t *, taskqid_t);
 extern int	taskq_member(taskq_t *, kthread_t *);
 extern int	taskq_cancel_id(taskq_t *, taskqid_t);
 extern void	system_taskq_init(void);
@@ -610,9 +614,14 @@ extern void delay(clock_t ticks);
 	} while (0);
 
 #define	max_ncpus	64
+#define	boot_ncpus	(sysconf(_SC_NPROCESSORS_ONLN))
 
-#define	minclsyspri	60
-#define	maxclsyspri	99
+/*
+ * Process priorities as defined by setpriority(2) and getpriority(2).
+ */
+#define	minclsyspri	19
+#define	maxclsyspri	-20
+#define	defclsyspri	0
 
 #define	CPU_SEQID	(pthread_self() & (max_ncpus - 1))
 
@@ -623,7 +632,7 @@ extern void delay(clock_t ticks);
 
 extern uint64_t physmem;
 
-extern int highbit(ulong_t i);
+extern int highbit64(uint64_t i);
 extern int random_get_bytes(uint8_t *ptr, size_t len);
 extern int random_get_pseudo_bytes(uint8_t *ptr, size_t len);
 
@@ -671,6 +680,9 @@ extern int ddi_strtoul(const char *str, char **nptr, int base,
 
 extern int ddi_strtoull(const char *str, char **nptr, int base,
     u_longlong_t *result);
+
+typedef struct utsname	utsname_t;
+extern utsname_t *utsname(void);
 
 /* ZFS Boot Related stuff. */
 
@@ -731,6 +743,11 @@ void ksiddomain_rele(ksiddomain_t *);
 		(void) nanosleep(&ts, NULL);				\
 	} while (0)
 
-#endif /* _KERNEL */
+typedef int fstrans_cookie_t;
 
+extern fstrans_cookie_t spl_fstrans_mark(void);
+extern void spl_fstrans_unmark(fstrans_cookie_t);
+extern int spl_fstrans_check(void);
+
+#endif /* _KERNEL */
 #endif	/* _SYS_ZFS_CONTEXT_H */

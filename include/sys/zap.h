@@ -20,7 +20,7 @@
  */
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2012 by Delphix. All rights reserved.
+ * Copyright (c) 2013 by Delphix. All rights reserved.
  */
 
 #ifndef	_SYS_ZAP_H
@@ -139,6 +139,12 @@ uint64_t zap_create_flags(objset_t *os, int normflags, zap_flags_t flags,
     dmu_object_type_t bonustype, int bonuslen, dmu_tx_t *tx);
 uint64_t zap_create_link(objset_t *os, dmu_object_type_t ot,
     uint64_t parent_obj, const char *name, dmu_tx_t *tx);
+
+/*
+ * Initialize an already-allocated object.
+ */
+void mzap_create_impl(objset_t *os, uint64_t obj, int normflags,
+    zap_flags_t flags, dmu_tx_t *tx);
 
 /*
  * Create a new zapobj with no attributes from the given (unallocated)
@@ -373,11 +379,6 @@ void zap_cursor_advance(zap_cursor_t *zc);
  * fewer than 2^22 (4.2 million) entries in the zap object.
  */
 uint64_t zap_cursor_serialize(zap_cursor_t *zc);
-
-/*
- * Advance the cursor to the attribute having the given key.
- */
-int zap_cursor_move_to_key(zap_cursor_t *zc, const char *name, matchtype_t mt);
 
 /*
  * Initialize a zap cursor pointing to the position recorded by

@@ -20,7 +20,7 @@
  */
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2013 by Delphix. All rights reserved.
+ * Copyright (c) 2011, 2015 by Delphix. All rights reserved.
  * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
  * Copyright (c) 2013 Steven Hartland. All rights reserved.
  */
@@ -52,7 +52,7 @@
  *     At random times, the child self-immolates with a SIGKILL.
  *     This is the software equivalent of pulling the power cord.
  *     The parent then runs the test again, using the existing
- *     storage pool, as many times as desired. If backwards compatability
+ *     storage pool, as many times as desired. If backwards compatibility
  *     testing is enabled ztest will sometimes run the "older" version
  *     of ztest after a SIGKILL.
  *
@@ -119,11 +119,13 @@
 #include <unistd.h>
 #include <signal.h>
 #include <umem.h>
-#include <dlfcn.h>
 #include <ctype.h>
 #include <math.h>
 #include <sys/fs/zfs.h>
 #include <libnvpair.h>
+#ifdef __GNUC__
+#include <execinfo.h> /* for backtrace() */
+#endif
 
 static int ztest_fd_data = -1;
 static int ztest_fd_rand = -1;
@@ -187,6 +189,7 @@ static const ztest_shared_opts_t ztest_opts_defaults = {
 
 extern uint64_t metaslab_gang_bang;
 extern uint64_t metaslab_df_alloc_threshold;
+extern int metaslab_preload_limit;
 
 static ztest_shared_opts_t *ztest_shared_opts;
 static ztest_shared_opts_t ztest_opts;
@@ -293,6 +296,7 @@ typedef struct ztest_info {
 	ztest_func_t	*zi_func;	/* test function */
 	uint64_t	zi_iters;	/* iterations per execution */
 	uint64_t	*zi_interval;	/* execute every <interval> seconds */
+	const char	*zi_funcname;	/* name of test function */
 } ztest_info_t;
 
 typedef struct ztest_shared_callstate {
@@ -304,9 +308,6 @@ typedef struct ztest_shared_callstate {
 static ztest_shared_callstate_t *ztest_shared_callstate;
 #define	ZTEST_GET_SHARED_CALLSTATE(c) (&ztest_shared_callstate[c])
 
-/*
- * Note: these aren't static because we want dladdr() to work.
- */
 ztest_func_t ztest_dmu_read_write;
 ztest_func_t ztest_dmu_write_parallel;
 ztest_func_t ztest_dmu_object_alloc_free;
@@ -343,40 +344,44 @@ uint64_t zopt_often = 1ULL * NANOSEC;		/* every second */
 uint64_t zopt_sometimes = 10ULL * NANOSEC;	/* every 10 seconds */
 uint64_t zopt_rarely = 60ULL * NANOSEC;		/* every 60 seconds */
 
+#define	ZTI_INIT(func, iters, interval) \
+	{   .zi_func = (func), \
+	    .zi_iters = (iters), \
+	    .zi_interval = (interval), \
+	    .zi_funcname = # func }
+
 ztest_info_t ztest_info[] = {
-	{ ztest_dmu_read_write,			1,	&zopt_always	},
-	{ ztest_dmu_write_parallel,		10,	&zopt_always	},
-	{ ztest_dmu_object_alloc_free,		1,	&zopt_always	},
-	{ ztest_dmu_commit_callbacks,		1,	&zopt_always	},
-	{ ztest_zap,				30,	&zopt_always	},
-	{ ztest_zap_parallel,			100,	&zopt_always	},
-	{ ztest_split_pool,			1,	&zopt_always	},
-	{ ztest_zil_commit,			1,	&zopt_incessant	},
-	{ ztest_zil_remount,			1,	&zopt_sometimes	},
-	{ ztest_dmu_read_write_zcopy,		1,	&zopt_often	},
-	{ ztest_dmu_objset_create_destroy,	1,	&zopt_often	},
-	{ ztest_dsl_prop_get_set,		1,	&zopt_often	},
-	{ ztest_spa_prop_get_set,		1,	&zopt_sometimes	},
+	ZTI_INIT(ztest_dmu_read_write, 1, &zopt_always),
+	ZTI_INIT(ztest_dmu_write_parallel, 10, &zopt_always),
+	ZTI_INIT(ztest_dmu_object_alloc_free, 1, &zopt_always),
+	ZTI_INIT(ztest_dmu_commit_callbacks, 1, &zopt_always),
+	ZTI_INIT(ztest_zap, 30, &zopt_always),
+	ZTI_INIT(ztest_zap_parallel, 100, &zopt_always),
+	ZTI_INIT(ztest_split_pool, 1, &zopt_always),
+	ZTI_INIT(ztest_zil_commit, 1, &zopt_incessant),
+	ZTI_INIT(ztest_zil_remount, 1, &zopt_sometimes),
+	ZTI_INIT(ztest_dmu_read_write_zcopy, 1, &zopt_often),
+	ZTI_INIT(ztest_dmu_objset_create_destroy, 1, &zopt_often),
+	ZTI_INIT(ztest_dsl_prop_get_set, 1, &zopt_often),
+	ZTI_INIT(ztest_spa_prop_get_set, 1, &zopt_sometimes),
 #if 0
-	{ ztest_dmu_prealloc,			1,	&zopt_sometimes	},
+	ZTI_INIT(ztest_dmu_prealloc, 1, &zopt_sometimes),
 #endif
-	{ ztest_fzap,				1,	&zopt_sometimes	},
-	{ ztest_dmu_snapshot_create_destroy,	1,	&zopt_sometimes	},
-	{ ztest_spa_create_destroy,		1,	&zopt_sometimes	},
-	{ ztest_fault_inject,			1,	&zopt_sometimes	},
-	{ ztest_ddt_repair,			1,	&zopt_sometimes	},
-	{ ztest_dmu_snapshot_hold,		1,	&zopt_sometimes	},
-	{ ztest_reguid,				1,	&zopt_rarely	},
-	{ ztest_spa_rename,			1,	&zopt_rarely	},
-	{ ztest_scrub,				1,	&zopt_rarely	},
-	{ ztest_spa_upgrade,			1,	&zopt_rarely	},
-	{ ztest_dsl_dataset_promote_busy,	1,	&zopt_rarely	},
-	{ ztest_vdev_attach_detach,		1,	&zopt_sometimes	},
-	{ ztest_vdev_LUN_growth,		1,	&zopt_rarely	},
-	{ ztest_vdev_add_remove,		1,
-	    &ztest_opts.zo_vdevtime				},
-	{ ztest_vdev_aux_add_remove,		1,
-	    &ztest_opts.zo_vdevtime				},
+	ZTI_INIT(ztest_fzap, 1, &zopt_sometimes),
+	ZTI_INIT(ztest_dmu_snapshot_create_destroy, 1, &zopt_sometimes),
+	ZTI_INIT(ztest_spa_create_destroy, 1, &zopt_sometimes),
+	ZTI_INIT(ztest_fault_inject, 1, &zopt_sometimes),
+	ZTI_INIT(ztest_ddt_repair, 1, &zopt_sometimes),
+	ZTI_INIT(ztest_dmu_snapshot_hold, 1, &zopt_sometimes),
+	ZTI_INIT(ztest_reguid, 1, &zopt_rarely),
+	ZTI_INIT(ztest_spa_rename, 1, &zopt_rarely),
+	ZTI_INIT(ztest_scrub, 1, &zopt_rarely),
+	ZTI_INIT(ztest_spa_upgrade, 1, &zopt_rarely),
+	ZTI_INIT(ztest_dsl_dataset_promote_busy, 1, &zopt_rarely),
+	ZTI_INIT(ztest_vdev_attach_detach, 1, &zopt_sometimes),
+	ZTI_INIT(ztest_vdev_LUN_growth, 1, &zopt_rarely),
+	ZTI_INIT(ztest_vdev_add_remove, 1, &ztest_opts.zo_vdevtime),
+	ZTI_INIT(ztest_vdev_aux_add_remove, 1, &ztest_opts.zo_vdevtime),
 };
 
 #define	ZTEST_FUNCS	(sizeof (ztest_info) / sizeof (ztest_info_t))
@@ -478,6 +483,30 @@ const char *
 _umem_logging_init(void)
 {
 	return ("fail,contents"); /* $UMEM_LOGGING setting */
+}
+
+#define	BACKTRACE_SZ	100
+
+static void sig_handler(int signo)
+{
+	struct sigaction action;
+#ifdef __GNUC__ /* backtrace() is a GNU extension */
+	int nptrs;
+	void *buffer[BACKTRACE_SZ];
+
+	nptrs = backtrace(buffer, BACKTRACE_SZ);
+	backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
+#endif
+
+	/*
+	 * Restore default action and re-raise signal so SIGSEGV and
+	 * SIGABRT can trigger a core dump.
+	 */
+	action.sa_handler = SIG_DFL;
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = 0;
+	(void) sigaction(signo, &action, NULL);
+	raise(signo);
 }
 
 #define	FATAL_MSG_SZ	1024
@@ -831,7 +860,7 @@ static uint64_t
 ztest_get_ashift(void)
 {
 	if (ztest_opts.zo_ashift == 0)
-		return (SPA_MINBLOCKSHIFT + ztest_random(3));
+		return (SPA_MINBLOCKSHIFT + ztest_random(5));
 	return (ztest_opts.zo_ashift);
 }
 
@@ -996,8 +1025,16 @@ ztest_random_spa_version(uint64_t initial_version)
 static int
 ztest_random_blocksize(void)
 {
-	return (1 << (SPA_MINBLOCKSHIFT +
-	    ztest_random(SPA_MAXBLOCKSHIFT - SPA_MINBLOCKSHIFT + 1)));
+	/*
+	 * Choose a block size >= the ashift.
+	 * If the SPA supports new MAXBLOCKSIZE, test up to 1MB blocks.
+	 */
+	int maxbs = SPA_OLD_MAXBLOCKSHIFT;
+	if (spa_maxblocksize(ztest_spa) == SPA_MAXBLOCKSIZE)
+		maxbs = 20;
+	uint64_t block_shift =
+	    ztest_random(maxbs - ztest_spa->spa_max_ashift + 1);
+	return (1 << (SPA_MINBLOCKSHIFT + block_shift));
 }
 
 static int
@@ -1060,9 +1097,16 @@ ztest_dsl_prop_set_uint64(char *osname, zfs_prop_t prop, uint64_t value,
 	VERIFY0(dsl_prop_get_integer(osname, propname, &curval, setpoint));
 
 	if (ztest_opts.zo_verbose >= 6) {
-		VERIFY(zfs_prop_index_to_string(prop, curval, &valname) == 0);
-		(void) printf("%s %s = %s at '%s'\n",
-		    osname, propname, valname, setpoint);
+		int err;
+
+		err = zfs_prop_index_to_string(prop, curval, &valname);
+		if (err)
+			(void) printf("%s %s = %llu at '%s'\n",
+			    osname, propname, (unsigned long long)curval,
+				setpoint);
+		else
+			(void) printf("%s %s = %s at '%s'\n",
+			    osname, propname, valname, setpoint);
 	}
 	umem_free(setpoint, MAXPATHLEN);
 
@@ -1300,13 +1344,13 @@ static void
 ztest_bt_verify(ztest_block_tag_t *bt, objset_t *os, uint64_t object,
     uint64_t offset, uint64_t gen, uint64_t txg, uint64_t crtxg)
 {
-	ASSERT(bt->bt_magic == BT_MAGIC);
-	ASSERT(bt->bt_objset == dmu_objset_id(os));
-	ASSERT(bt->bt_object == object);
-	ASSERT(bt->bt_offset == offset);
-	ASSERT(bt->bt_gen <= gen);
-	ASSERT(bt->bt_txg <= txg);
-	ASSERT(bt->bt_crtxg == crtxg);
+	ASSERT3U(bt->bt_magic, ==, BT_MAGIC);
+	ASSERT3U(bt->bt_objset, ==, dmu_objset_id(os));
+	ASSERT3U(bt->bt_object, ==, object);
+	ASSERT3U(bt->bt_offset, ==, offset);
+	ASSERT3U(bt->bt_gen, <=, gen);
+	ASSERT3U(bt->bt_txg, <=, txg);
+	ASSERT3U(bt->bt_crtxg, ==, crtxg);
 }
 
 static ztest_block_tag_t *
@@ -3556,6 +3600,11 @@ ztest_dsl_dataset_promote_busy(ztest_ds_t *zd, uint64_t id)
 	if (error)
 		fatal(0, "dmu_objset_own(%s) = %d", snap2name, error);
 	error = dsl_dataset_promote(clone2name, NULL);
+	if (error == ENOSPC) {
+		dmu_objset_disown(os, FTAG);
+		ztest_record_enospc(FTAG);
+		goto out;
+	}
 	if (error != EBUSY)
 		fatal(0, "dsl_dataset_promote(%s), %d, not EBUSY", clone2name,
 		    error);
@@ -3738,11 +3787,19 @@ ztest_dmu_read_write(ztest_ds_t *zd, uint64_t id)
 		return;
 	}
 
-	dmu_object_set_checksum(os, bigobj,
-	    (enum zio_checksum)ztest_random_dsl_prop(ZFS_PROP_CHECKSUM), tx);
+	enum zio_checksum cksum;
+	do {
+		cksum = (enum zio_checksum)
+		    ztest_random_dsl_prop(ZFS_PROP_CHECKSUM);
+	} while (cksum >= ZIO_CHECKSUM_LEGACY_FUNCTIONS);
+	dmu_object_set_checksum(os, bigobj, cksum, tx);
 
-	dmu_object_set_compress(os, bigobj,
-	    (enum zio_compress)ztest_random_dsl_prop(ZFS_PROP_COMPRESSION), tx);
+	enum zio_compress comp;
+	do {
+		comp = (enum zio_compress)
+		    ztest_random_dsl_prop(ZFS_PROP_COMPRESSION);
+	} while (comp >= ZIO_COMPRESS_LEGACY_FUNCTIONS);
+	dmu_object_set_compress(os, bigobj, comp, tx);
 
 	/*
 	 * For each index from n to n + s, verify that the existing bufwad
@@ -3992,7 +4049,7 @@ ztest_dmu_read_write_zcopy(ztest_ds_t *zd, uint64_t id)
 		 * assign an arcbuf to a dbuf.
 		 */
 		for (j = 0; j < s; j++) {
-			if (i != 5) {
+			if (i != 5 || chunksize < (SPA_MINBLOCKSIZE * 2)) {
 				bigbuf_arcbufs[j] =
 				    dmu_request_arcbuf(bonus_db, chunksize);
 			} else {
@@ -4016,7 +4073,8 @@ ztest_dmu_read_write_zcopy(ztest_ds_t *zd, uint64_t id)
 			umem_free(packbuf, packsize);
 			umem_free(bigbuf, bigsize);
 			for (j = 0; j < s; j++) {
-				if (i != 5) {
+				if (i != 5 ||
+				    chunksize < (SPA_MINBLOCKSIZE * 2)) {
 					dmu_return_arcbuf(bigbuf_arcbufs[j]);
 				} else {
 					dmu_return_arcbuf(
@@ -4061,7 +4119,7 @@ ztest_dmu_read_write_zcopy(ztest_ds_t *zd, uint64_t id)
 		}
 		for (off = bigoff, j = 0; j < s; j++, off += chunksize) {
 			dmu_buf_t *dbt;
-			if (i != 5) {
+			if (i != 5 || chunksize < (SPA_MINBLOCKSIZE * 2)) {
 				bcopy((caddr_t)bigbuf + (off - bigoff),
 				    bigbuf_arcbufs[j]->b_data, chunksize);
 			} else {
@@ -4078,7 +4136,7 @@ ztest_dmu_read_write_zcopy(ztest_ds_t *zd, uint64_t id)
 				VERIFY(dmu_buf_hold(os, bigobj, off,
 				    FTAG, &dbt, DMU_READ_NO_PREFETCH) == 0);
 			}
-			if (i != 5) {
+			if (i != 5 || chunksize < (SPA_MINBLOCKSIZE * 2)) {
 				dmu_assign_arcbuf(bonus_db, off,
 				    bigbuf_arcbufs[j], tx);
 			} else {
@@ -4731,6 +4789,9 @@ ztest_dsl_prop_get_set(ztest_ds_t *zd, uint64_t id)
 		(void) ztest_dsl_prop_set_uint64(zd->zd_name, proplist[p],
 		    ztest_random_dsl_prop(proplist[p]), (int)ztest_random(2));
 
+	VERIFY0(ztest_dsl_prop_set_uint64(zd->zd_name, ZFS_PROP_RECORDSIZE,
+	    ztest_random_blocksize(), (int)ztest_random(2)));
+
 	(void) rw_unlock(&ztest_name_lock);
 }
 
@@ -4866,8 +4927,13 @@ ztest_dmu_snapshot_hold(ztest_ds_t *zd, uint64_t id)
 	error = dsl_dataset_user_hold(holds, 0, NULL);
 	fnvlist_free(holds);
 
-	if (error)
-		fatal(0, "dsl_dataset_user_hold(%s)", fullname, tag);
+	if (error == ENOSPC) {
+		ztest_record_enospc("dsl_dataset_user_hold");
+		goto out;
+	} else if (error) {
+		fatal(0, "dsl_dataset_user_hold(%s, %s) = %u",
+		    fullname, tag, error);
+	}
 
 	error = dsl_destroy_snapshot(fullname, B_FALSE);
 	if (error != EBUSY) {
@@ -4908,7 +4974,7 @@ ztest_fault_inject(ztest_ds_t *zd, uint64_t id)
 	char *path0;
 	char *pathrand;
 	size_t fsize;
-	int bshift = SPA_MAXBLOCKSHIFT + 2;	/* don't scrog all labels */
+	int bshift = SPA_OLD_MAXBLOCKSHIFT + 2;	/* don't scrog all labels */
 	int iters = 1000;
 	int maxfaults;
 	int mirror_save;
@@ -5335,7 +5401,7 @@ ztest_run_zdb(char *pool)
 	}
 
 	(void) sprintf(zdb,
-	    "%s -bcc%s%s -U %s %s",
+	    "%s -bcc%s%s -d -U %s %s",
 	    bin,
 	    ztest_opts.zo_verbose >= 3 ? "s" : "",
 	    ztest_opts.zo_verbose >= 4 ? "v" : "",
@@ -5520,12 +5586,9 @@ ztest_execute(int test, ztest_info_t *zi, uint64_t id)
 	atomic_add_64(&zc->zc_count, 1);
 	atomic_add_64(&zc->zc_time, functime);
 
-	if (ztest_opts.zo_verbose >= 4) {
-		Dl_info dli;
-		(void) dladdr((void *)zi->zi_func, &dli);
+	if (ztest_opts.zo_verbose >= 4)
 		(void) printf("%6.2f sec in %s\n",
-		    (double)functime / NANOSEC, dli.dli_sname);
-	}
+		    (double)functime / NANOSEC, zi->zi_funcname);
 }
 
 static void *
@@ -5734,6 +5797,7 @@ ztest_run(ztest_shared_t *zs)
 	kernel_init(FREAD | FWRITE);
 	VERIFY0(spa_open(ztest_opts.zo_pool, &spa, FTAG));
 	spa->spa_debug = B_TRUE;
+	metaslab_preload_limit = ztest_random(20) + 1;
 	ztest_spa = spa;
 
 	VERIFY0(dmu_objset_own(ztest_opts.zo_pool,
@@ -5917,16 +5981,30 @@ ztest_freeze(void)
 	spa_freeze(spa);
 
 	/*
+	 * Because it is hard to predict how much space a write will actually
+	 * require beforehand, we leave ourselves some fudge space to write over
+	 * capacity.
+	 */
+	uint64_t capacity = metaslab_class_get_space(spa_normal_class(spa)) / 2;
+
+	/*
 	 * Run tests that generate log records but don't alter the pool config
 	 * or depend on DSL sync tasks (snapshots, objset create/destroy, etc).
 	 * We do a txg_wait_synced() after each iteration to force the txg
 	 * to increase well beyond the last synced value in the uberblock.
 	 * The ZIL should be OK with that.
+	 *
+	 * Run a random number of times less than zo_maxloops and ensure we do
+	 * not run out of space on the pool.
 	 */
 	while (ztest_random(10) != 0 &&
-	    numloops++ < ztest_opts.zo_maxloops) {
-		ztest_dmu_write_parallel(zd, 0);
-		ztest_dmu_object_alloc_free(zd, 0);
+	    numloops++ < ztest_opts.zo_maxloops &&
+	    metaslab_class_get_alloc(spa_normal_class(spa)) < capacity) {
+		ztest_od_t od;
+		ztest_od_init(&od, 0, FTAG, 0, DMU_OT_UINT64_OTHER, 0, 0);
+		VERIFY0(ztest_object_init(zd, &od, sizeof (od), B_FALSE));
+		ztest_io(zd, od.od_object,
+		    ztest_random(ZTEST_RANGE_LOCKS) << SPA_MAXBLOCKSHIFT);
 		txg_wait_synced(spa_get_dsl(spa), 0);
 	}
 
@@ -6244,10 +6322,27 @@ main(int argc, char **argv)
 	boolean_t hasalt;
 	int f;
 	char *fd_data_str = getenv("ZTEST_FD_DATA");
+	struct sigaction action;
 
 	(void) setvbuf(stdout, NULL, _IOLBF, 0);
 
 	dprintf_setup(&argc, argv);
+
+	action.sa_handler = sig_handler;
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = 0;
+
+	if (sigaction(SIGSEGV, &action, NULL) < 0) {
+		(void) fprintf(stderr, "ztest: cannot catch SIGSEGV: %s.\n",
+		    strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	if (sigaction(SIGABRT, &action, NULL) < 0) {
+		(void) fprintf(stderr, "ztest: cannot catch SIGABRT: %s.\n",
+		    strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 	ztest_fd_rand = open("/dev/urandom", O_RDONLY);
 	ASSERT3S(ztest_fd_rand, >=, 0);
@@ -6395,15 +6490,12 @@ main(int argc, char **argv)
 			(void) printf("%7s %9s   %s\n",
 			    "-----", "----", "--------");
 			for (f = 0; f < ZTEST_FUNCS; f++) {
-				Dl_info dli;
-
 				zi = &ztest_info[f];
 				zc = ZTEST_GET_SHARED_CALLSTATE(f);
 				print_time(zc->zc_time, timebuf);
-				(void) dladdr((void *)zi->zi_func, &dli);
 				(void) printf("%7llu %9s   %s\n",
 				    (u_longlong_t)zc->zc_count, timebuf,
-				    dli.dli_sname);
+				    zi->zi_funcname);
 			}
 			(void) printf("\n");
 		}

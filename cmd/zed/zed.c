@@ -1,27 +1,15 @@
 /*
- * CDDL HEADER START
- *
- * The contents of this file are subject to the terms of the
- * Common Development and Distribution License (the "License").
- * You may not use this file except in compliance with the License.
- *
- * You can obtain a copy of the license from the top-level
- * OPENSOLARIS.LICENSE or <http://opensource.org/licenses/CDDL-1.0>.
- * See the License for the specific language governing permissions
- * and limitations under the License.
- *
- * When distributing Covered Code, include this CDDL HEADER in each file
- * and include the License file from the top-level OPENSOLARIS.LICENSE.
- * If applicable, add the following below this CDDL HEADER, with the
- * fields enclosed by brackets "[]" replaced with your own identifying
- * information: Portions Copyright [yyyy] [name of copyright owner]
- *
- * CDDL HEADER END
- */
-
-/*
+ * This file is part of the ZFS Event Daemon (ZED)
+ * for ZFS on Linux (ZoL) <http://zfsonlinux.org/>.
  * Developed at Lawrence Livermore National Laboratory (LLNL-CODE-403049).
  * Copyright (C) 2013-2014 Lawrence Livermore National Security, LLC.
+ * Refer to the ZoL git commit log for authoritative copyright attribution.
+ *
+ * The contents of this file are subject to the terms of the
+ * Common Development and Distribution License Version 1.0 (CDDL-1.0).
+ * You can obtain a copy of the license from the top-level file
+ * "OPENSOLARIS.LICENSE" or at <http://opensource.org/licenses/CDDL-1.0>.
+ * You may not use this file except in compliance with the license.
  */
 
 #include <errno.h>
@@ -91,8 +79,13 @@ _setup_sig_handlers(void)
 
 /*
  * Lock all current and future pages in the virtual memory address space.
- *   Access to locked pages will never be delayed by a page fault.
+ * Access to locked pages will never be delayed by a page fault.
+ *
  * EAGAIN is tested up to max_tries in case this is a transient error.
+ *
+ * Note that memory locks are not inherited by a child created via fork()
+ * and are automatically removed during an execve().  As such, this must
+ * be called after the daemon fork()s (when running in the background).
  */
 static void
 _lock_memory(void)
@@ -117,25 +110,58 @@ _lock_memory(void)
 }
 
 /*
- * Transform the process into a daemon.
+ * Start daemonization of the process including the double fork().
+ *
+ * The parent process will block here until _finish_daemonize() is called
+ * (in the grandchild process), at which point the parent process will exit.
+ * This prevents the parent process from exiting until initialization is
+ * complete.
  */
 static void
-_become_daemon(void)
+_start_daemonize(void)
 {
 	pid_t pid;
-	int fd;
+	struct sigaction sa;
 
+	/* Create pipe for communicating with child during daemonization. */
+	zed_log_pipe_open();
+
+	/* Background process and ensure child is not process group leader. */
 	pid = fork();
 	if (pid < 0) {
 		zed_log_die("Failed to create child process: %s",
 		    strerror(errno));
 	} else if (pid > 0) {
+
+		/* Close writes since parent will only read from pipe. */
+		zed_log_pipe_close_writes();
+
+		/* Wait for notification that daemonization is complete. */
+		zed_log_pipe_wait();
+
+		zed_log_pipe_close_reads();
 		_exit(EXIT_SUCCESS);
 	}
+
+	/* Close reads since child will only write to pipe. */
+	zed_log_pipe_close_reads();
+
+	/* Create independent session and detach from terminal. */
 	if (setsid() < 0)
 		zed_log_die("Failed to create new session: %s",
 		    strerror(errno));
 
+	/* Prevent child from terminating on HUP when session leader exits. */
+	if (sigemptyset(&sa.sa_mask) < 0)
+		zed_log_die("Failed to initialize sigset");
+
+	sa.sa_flags = 0;
+	sa.sa_handler = SIG_IGN;
+
+	if (sigaction(SIGHUP, &sa, NULL) < 0)
+		zed_log_die("Failed to ignore SIGHUP");
+
+	/* Ensure process cannot re-acquire terminal. */
 	pid = fork();
 	if (pid < 0) {
 		zed_log_die("Failed to create grandchild process: %s",
@@ -143,25 +169,41 @@ _become_daemon(void)
 	} else if (pid > 0) {
 		_exit(EXIT_SUCCESS);
 	}
-	fd = open("/dev/null", O_RDWR);
+}
 
-	if (fd < 0)
+/*
+ * Finish daemonization of the process by closing stdin/stdout/stderr.
+ *
+ * This must be called at the end of initialization after all external
+ * communication channels are established and accessible.
+ */
+static void
+_finish_daemonize(void)
+{
+	int devnull;
+
+	/* Preserve fd 0/1/2, but discard data to/from stdin/stdout/stderr. */
+	devnull = open("/dev/null", O_RDWR);
+	if (devnull < 0)
 		zed_log_die("Failed to open /dev/null: %s", strerror(errno));
 
-	if (dup2(fd, STDIN_FILENO) < 0)
+	if (dup2(devnull, STDIN_FILENO) < 0)
 		zed_log_die("Failed to dup /dev/null onto stdin: %s",
 		    strerror(errno));
 
-	if (dup2(fd, STDOUT_FILENO) < 0)
+	if (dup2(devnull, STDOUT_FILENO) < 0)
 		zed_log_die("Failed to dup /dev/null onto stdout: %s",
 		    strerror(errno));
 
-	if (dup2(fd, STDERR_FILENO) < 0)
+	if (dup2(devnull, STDERR_FILENO) < 0)
 		zed_log_die("Failed to dup /dev/null onto stderr: %s",
 		    strerror(errno));
 
-	if (close(fd) < 0)
+	if (close(devnull) < 0)
 		zed_log_die("Failed to close /dev/null: %s", strerror(errno));
+
+	/* Notify parent that daemonization is complete. */
+	zed_log_pipe_close_writes();
 }
 
 /*
@@ -184,13 +226,11 @@ main(int argc, char *argv[])
 	if (geteuid() != 0)
 		zed_log_die("Must be run as root");
 
-	(void) umask(0);
-
-	_setup_sig_handlers();
-
 	zed_conf_parse_file(zcp);
 
 	zed_file_close_from(STDERR_FILENO + 1);
+
+	(void) umask(0);
 
 	if (chdir("/") < 0)
 		zed_log_die("Failed to change to root directory");
@@ -198,18 +238,24 @@ main(int argc, char *argv[])
 	if (zed_conf_scan_dir(zcp) < 0)
 		exit(EXIT_FAILURE);
 
+	if (!zcp->do_foreground) {
+		_start_daemonize();
+		zed_log_syslog_open(LOG_DAEMON);
+	}
+	_setup_sig_handlers();
+
 	if (zcp->do_memlock)
 		_lock_memory();
 
-	if (!zcp->do_foreground) {
-		_become_daemon();
-		zed_log_syslog_open(LOG_DAEMON);
-		zed_log_stderr_close();
-	}
-	zed_log_msg(LOG_NOTICE,
-	    "ZFS Event Daemon %s-%s", ZFS_META_VERSION, ZFS_META_RELEASE);
+	if ((zed_conf_write_pid(zcp) < 0) && (!zcp->do_force))
+		exit(EXIT_FAILURE);
 
-	(void) zed_conf_write_pid(zcp);
+	if (!zcp->do_foreground)
+		_finish_daemonize();
+
+	zed_log_msg(LOG_NOTICE,
+	    "ZFS Event Daemon %s-%s (PID %d)",
+	    ZFS_META_VERSION, ZFS_META_RELEASE, (int) getpid());
 
 	if (zed_conf_open_state(zcp) < 0)
 		exit(EXIT_FAILURE);

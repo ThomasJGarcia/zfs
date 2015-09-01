@@ -21,6 +21,7 @@
 
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Joyent, Inc. All rights reserved.
  * Copyright (c) 2013 by Delphix. All rights reserved.
  * Copyright (c) 2012 DEY Storage Systems, Inc.  All rights reserved.
  * Copyright (c) 2012 Pawel Jakub Dawidek <pawel@dawidek.net>.
@@ -259,7 +260,7 @@ zpool_handle(zfs_handle_t *zhp)
 	int len;
 	zpool_handle_t *zph;
 
-	len = strcspn(zhp->zfs_name, "/@") + 1;
+	len = strcspn(zhp->zfs_name, "/@#") + 1;
 	pool_name = zfs_alloc(zhp->zfs_hdl, len);
 	(void) strlcpy(pool_name, zhp->zfs_name, len);
 
@@ -543,6 +544,70 @@ zfs_handle_dup(zfs_handle_t *zhp_orig)
 		    zhp_orig->zfs_mntopts);
 	}
 	zhp->zfs_props_table = zhp_orig->zfs_props_table;
+	return (zhp);
+}
+
+boolean_t
+zfs_bookmark_exists(const char *path)
+{
+	nvlist_t *bmarks;
+	nvlist_t *props;
+	char fsname[ZFS_MAXNAMELEN];
+	char *bmark_name;
+	char *pound;
+	int err;
+	boolean_t rv;
+
+
+	(void) strlcpy(fsname, path, sizeof (fsname));
+	pound = strchr(fsname, '#');
+	if (pound == NULL)
+		return (B_FALSE);
+
+	*pound = '\0';
+	bmark_name = pound + 1;
+	props = fnvlist_alloc();
+	err = lzc_get_bookmarks(fsname, props, &bmarks);
+	nvlist_free(props);
+	if (err != 0) {
+		nvlist_free(bmarks);
+		return (B_FALSE);
+	}
+
+	rv = nvlist_exists(bmarks, bmark_name);
+	nvlist_free(bmarks);
+	return (rv);
+}
+
+zfs_handle_t *
+make_bookmark_handle(zfs_handle_t *parent, const char *path,
+    nvlist_t *bmark_props)
+{
+	zfs_handle_t *zhp = calloc(sizeof (zfs_handle_t), 1);
+
+	if (zhp == NULL)
+		return (NULL);
+
+	/* Fill in the name. */
+	zhp->zfs_hdl = parent->zfs_hdl;
+	(void) strlcpy(zhp->zfs_name, path, sizeof (zhp->zfs_name));
+
+	/* Set the property lists. */
+	if (nvlist_dup(bmark_props, &zhp->zfs_props, 0) != 0) {
+		free(zhp);
+		return (NULL);
+	}
+
+	/* Set the types. */
+	zhp->zfs_head_type = parent->zfs_head_type;
+	zhp->zfs_type = ZFS_TYPE_BOOKMARK;
+
+	if ((zhp->zpool_hdl = zpool_handle(zhp)) == NULL) {
+		nvlist_free(zhp->zfs_props);
+		free(zhp);
+		return (NULL);
+	}
+
 	return (zhp);
 }
 
@@ -990,21 +1055,28 @@ zfs_valid_proplist(libzfs_handle_t *hdl, zfs_type_t type, nvlist_t *nvl,
 			break;
 		}
 
-		case ZFS_PROP_RECORDSIZE:
 		case ZFS_PROP_VOLBLOCKSIZE:
-			/* must be power of two within SPA_{MIN,MAX}BLOCKSIZE */
+		case ZFS_PROP_RECORDSIZE:
+		{
+			int maxbs = SPA_MAXBLOCKSIZE;
+			if (zhp != NULL) {
+				maxbs = zpool_get_prop_int(zhp->zpool_hdl,
+				    ZPOOL_PROP_MAXBLOCKSIZE, NULL);
+			}
+			/*
+			 * The value must be a power of two between
+			 * SPA_MINBLOCKSIZE and maxbs.
+			 */
 			if (intval < SPA_MINBLOCKSIZE ||
-			    intval > SPA_MAXBLOCKSIZE || !ISP2(intval)) {
+			    intval > maxbs || !ISP2(intval)) {
 				zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
-				    "'%s' must be power of 2 from %u "
-				    "to %uk"), propname,
-				    (uint_t)SPA_MINBLOCKSIZE,
-				    (uint_t)SPA_MAXBLOCKSIZE >> 10);
+				    "'%s' must be power of 2 from 512B "
+				    "to %uKB"), propname, maxbs >> 10);
 				(void) zfs_error(hdl, EZFS_BADPROP, errbuf);
 				goto error;
 			}
 			break;
-
+		}
 		case ZFS_PROP_MLSLABEL:
 		{
 #ifdef HAVE_MLSLABEL
@@ -1373,6 +1445,12 @@ zfs_setprop_error(libzfs_handle_t *hdl, zfs_prop_t prop, int err,
 		(void) zfs_error(hdl, EZFS_DSREADONLY, errbuf);
 		break;
 
+	case E2BIG:
+		zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
+		    "property value too long"));
+		(void) zfs_error(hdl, EZFS_BADPROP, errbuf);
+		break;
+
 	case ENOTSUP:
 		zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
 		    "pool and or dataset must be upgraded to set this "
@@ -1381,7 +1459,8 @@ zfs_setprop_error(libzfs_handle_t *hdl, zfs_prop_t prop, int err,
 		break;
 
 	case ERANGE:
-		if (prop == ZFS_PROP_COMPRESSION) {
+		if (prop == ZFS_PROP_COMPRESSION ||
+		    prop == ZFS_PROP_RECORDSIZE) {
 			(void) zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
 			    "property setting is not allowed on "
 			    "bootable datasets"));
@@ -1765,8 +1844,10 @@ get_numeric_property(zfs_handle_t *zhp, zfs_prop_t prop, zprop_source_t *src,
 	 * the property is valid for the snapshot's head dataset type.
 	 */
 	if (zhp->zfs_type == ZFS_TYPE_SNAPSHOT &&
-		!zfs_prop_valid_for_type(prop, zhp->zfs_head_type, B_TRUE))
+		!zfs_prop_valid_for_type(prop, zhp->zfs_head_type, B_TRUE)) {
+			*val = zfs_prop_default_numeric(prop);
 			return (-1);
+	}
 
 	switch (prop) {
 	case ZFS_PROP_ATIME:
@@ -1868,6 +1949,10 @@ get_numeric_property(zfs_handle_t *zhp, zfs_prop_t prop, zprop_source_t *src,
 	case ZFS_PROP_REFQUOTA:
 	case ZFS_PROP_RESERVATION:
 	case ZFS_PROP_REFRESERVATION:
+	case ZFS_PROP_FILESYSTEM_LIMIT:
+	case ZFS_PROP_SNAPSHOT_LIMIT:
+	case ZFS_PROP_FILESYSTEM_COUNT:
+	case ZFS_PROP_SNAPSHOT_COUNT:
 		*val = getprop_uint64(zhp, prop, source);
 
 		if (*source == NULL) {
@@ -1893,6 +1978,9 @@ get_numeric_property(zfs_handle_t *zhp, zfs_prop_t prop, zprop_source_t *src,
 		(void) strlcpy(zc.zc_name, zhp->zfs_name, sizeof (zc.zc_name));
 		if (zfs_ioctl(zhp->zfs_hdl, ZFS_IOC_OBJSET_ZPLPROPS, &zc)) {
 			zcmd_free_nvlists(&zc);
+			if (prop == ZFS_PROP_VERSION &&
+			    zhp->zfs_type == ZFS_TYPE_VOLUME)
+				*val = zfs_prop_default_numeric(prop);
 			return (-1);
 		}
 		if (zcmd_read_dst_nvlist(zhp->zfs_hdl, &zc, &zplprops) != 0 ||
@@ -2273,6 +2361,30 @@ zfs_prop_get(zfs_handle_t *zhp, zfs_prop_t prop, char *propbuf, size_t proplen,
 		}
 		break;
 
+	case ZFS_PROP_FILESYSTEM_LIMIT:
+	case ZFS_PROP_SNAPSHOT_LIMIT:
+	case ZFS_PROP_FILESYSTEM_COUNT:
+	case ZFS_PROP_SNAPSHOT_COUNT:
+
+		if (get_numeric_property(zhp, prop, src, &source, &val) != 0)
+			return (-1);
+
+		/*
+		 * If limit is UINT64_MAX, we translate this into 'none' (unless
+		 * literal is set), and indicate that it's the default value.
+		 * Otherwise, we print the number nicely and indicate that it's
+		 * set locally.
+		 */
+		if (literal) {
+			(void) snprintf(propbuf, proplen, "%llu",
+			    (u_longlong_t)val);
+		} else if (val == UINT64_MAX) {
+			(void) strlcpy(propbuf, "none", proplen);
+		} else {
+			zfs_nicenum(val, propbuf, proplen);
+		}
+		break;
+
 	case ZFS_PROP_REFRATIO:
 	case ZFS_PROP_COMPRESSRATIO:
 		if (get_numeric_property(zhp, prop, src, &source, &val) != 0)
@@ -2292,6 +2404,9 @@ zfs_prop_get(zfs_handle_t *zhp, zfs_prop_t prop, char *propbuf, size_t proplen,
 			break;
 		case ZFS_TYPE_SNAPSHOT:
 			str = "snapshot";
+			break;
+		case ZFS_TYPE_BOOKMARK:
+			str = "bookmark";
 			break;
 		default:
 			abort();
@@ -3111,9 +3226,7 @@ zfs_create(libzfs_handle_t *hdl, const char *path, zfs_type_t type,
 		case EDOM:
 			zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
 			    "volume block size must be power of 2 from "
-			    "%u to %uk"),
-			    (uint_t)SPA_MINBLOCKSIZE,
-			    (uint_t)SPA_MAXBLOCKSIZE >> 10);
+			    "512B to %uKB"), zfs_max_recordsize >> 10);
 
 			return (zfs_error(hdl, EZFS_BADPROP, errbuf));
 
@@ -3149,6 +3262,19 @@ int
 zfs_destroy(zfs_handle_t *zhp, boolean_t defer)
 {
 	zfs_cmd_t zc = {"\0"};
+
+	if (zhp->zfs_type == ZFS_TYPE_BOOKMARK) {
+		nvlist_t *nv = fnvlist_alloc();
+		fnvlist_add_boolean(nv, zhp->zfs_name);
+		int error = lzc_destroy_bookmarks(nv, NULL);
+		fnvlist_free(nv);
+		if (error != 0) {
+			return (zfs_standard_error_fmt(zhp->zfs_hdl, errno,
+			    dgettext(TEXT_DOMAIN, "cannot destroy '%s'"),
+			    zhp->zfs_name));
+		}
+		return (0);
+	}
 
 	(void) strlcpy(zc.zc_name, zhp->zfs_name, sizeof (zc.zc_name));
 
@@ -3533,45 +3659,44 @@ typedef struct rollback_data {
 	const char	*cb_target;		/* the snapshot */
 	uint64_t	cb_create;		/* creation time reference */
 	boolean_t	cb_error;
-	boolean_t	cb_dependent;
 	boolean_t	cb_force;
 } rollback_data_t;
+
+static int
+rollback_destroy_dependent(zfs_handle_t *zhp, void *data)
+{
+	rollback_data_t *cbp = data;
+	prop_changelist_t *clp;
+
+	/* We must destroy this clone; first unmount it */
+	clp = changelist_gather(zhp, ZFS_PROP_NAME, 0,
+	    cbp->cb_force ? MS_FORCE: 0);
+	if (clp == NULL || changelist_prefix(clp) != 0) {
+		cbp->cb_error = B_TRUE;
+		zfs_close(zhp);
+		return (0);
+	}
+	if (zfs_destroy(zhp, B_FALSE) != 0)
+		cbp->cb_error = B_TRUE;
+	else
+		changelist_remove(clp, zhp->zfs_name);
+	(void) changelist_postfix(clp);
+	changelist_free(clp);
+
+	zfs_close(zhp);
+	return (0);
+}
 
 static int
 rollback_destroy(zfs_handle_t *zhp, void *data)
 {
 	rollback_data_t *cbp = data;
 
-	if (!cbp->cb_dependent) {
-		if (strcmp(zhp->zfs_name, cbp->cb_target) != 0 &&
-		    zfs_get_type(zhp) == ZFS_TYPE_SNAPSHOT &&
-		    zfs_prop_get_int(zhp, ZFS_PROP_CREATETXG) >
-		    cbp->cb_create) {
+	if (zfs_prop_get_int(zhp, ZFS_PROP_CREATETXG) > cbp->cb_create) {
+		cbp->cb_error |= zfs_iter_dependents(zhp, B_FALSE,
+		    rollback_destroy_dependent, cbp);
 
-			cbp->cb_dependent = B_TRUE;
-			cbp->cb_error |= zfs_iter_dependents(zhp, B_FALSE,
-			    rollback_destroy, cbp);
-			cbp->cb_dependent = B_FALSE;
-
-			cbp->cb_error |= zfs_destroy(zhp, B_FALSE);
-		}
-	} else {
-		/* We must destroy this clone; first unmount it */
-		prop_changelist_t *clp;
-
-		clp = changelist_gather(zhp, ZFS_PROP_NAME, 0,
-		    cbp->cb_force ? MS_FORCE: 0);
-		if (clp == NULL || changelist_prefix(clp) != 0) {
-			cbp->cb_error = B_TRUE;
-			zfs_close(zhp);
-			return (0);
-		}
-		if (zfs_destroy(zhp, B_FALSE) != 0)
-			cbp->cb_error = B_TRUE;
-		else
-			changelist_remove(clp, zhp->zfs_name);
-		(void) changelist_postfix(clp);
-		changelist_free(clp);
+		cbp->cb_error |= zfs_destroy(zhp, B_FALSE);
 	}
 
 	zfs_close(zhp);
@@ -3582,8 +3707,8 @@ rollback_destroy(zfs_handle_t *zhp, void *data)
  * Given a dataset, rollback to a specific snapshot, discarding any
  * data changes since then and making it the active dataset.
  *
- * Any snapshots more recent than the target are destroyed, along with
- * their dependents.
+ * Any snapshots and bookmarks more recent than the target are
+ * destroyed, along with their dependents (i.e. clones).
  */
 int
 zfs_rollback(zfs_handle_t *zhp, zfs_handle_t *snap, boolean_t force)
@@ -3603,7 +3728,8 @@ zfs_rollback(zfs_handle_t *zhp, zfs_handle_t *snap, boolean_t force)
 	cb.cb_force = force;
 	cb.cb_target = snap->zfs_name;
 	cb.cb_create = zfs_prop_get_int(snap, ZFS_PROP_CREATETXG);
-	(void) zfs_iter_children(zhp, rollback_destroy, &cb);
+	(void) zfs_iter_snapshots(zhp, B_FALSE, rollback_destroy, &cb);
+	(void) zfs_iter_bookmarks(zhp, rollback_destroy, &cb);
 
 	if (cb.cb_error)
 		return (-1);

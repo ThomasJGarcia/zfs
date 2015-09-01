@@ -21,6 +21,7 @@
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2013 by Delphix. All rights reserved.
+ * Copyright (c) 2015 by Chunwei Chen. All rights reserved.
  */
 
 /* Portions Copyright 2007 Jeremy Teo */
@@ -101,7 +102,7 @@
  *	pushing cached pages (which acquires range locks) and syncing out
  *	cached atime changes.  Third, zfs_zinactive() may require a new tx,
  *	which could deadlock the system if you were already holding one.
- *	If you must call iput() within a tx then use iput_ASYNC().
+ *	If you must call iput() within a tx then use zfs_iput_async().
  *
  *  (3)	All range locks must be grabbed before calling dmu_tx_assign(),
  *	as they can span dmu_tx_assign() calls.
@@ -274,16 +275,19 @@ zfs_holey_common(struct inode *ip, int cmd, loff_t *off)
 
 	error = dmu_offset_next(ZTOZSB(zp)->z_os, zp->z_id, hole, &noff);
 
-	/* end of file? */
-	if ((error == ESRCH) || (noff > file_sz)) {
-		/*
-		 * Handle the virtual hole at the end of file.
-		 */
-		if (hole) {
-			*off = file_sz;
-			return (0);
-		}
+	if (error == ESRCH)
 		return (SET_ERROR(ENXIO));
+
+	/*
+	 * We could find a hole that begins after the logical end-of-file,
+	 * because dmu_offset_next() only works on whole blocks.  If the
+	 * EOF falls mid-block, then indicate that the "virtual hole"
+	 * at the end of the file begins at the logical EOF, rather than
+	 * at the end of the last block.
+	 */
+	if (noff > file_sz) {
+		ASSERT(hole);
+		noff = file_sz;
 	}
 
 	if (noff < *off)
@@ -373,7 +377,6 @@ mappedread(struct inode *ip, int nbytes, uio_t *uio)
 	struct address_space *mp = ip->i_mapping;
 	struct page *pp;
 	znode_t *zp = ITOZ(ip);
-	objset_t *os = ITOZSB(ip)->z_os;
 	int64_t	start, off;
 	uint64_t bytes;
 	int len = nbytes;
@@ -400,7 +403,8 @@ mappedread(struct inode *ip, int nbytes, uio_t *uio)
 			unlock_page(pp);
 			page_cache_release(pp);
 		} else {
-			error = dmu_read_uio(os, zp->z_id, uio, bytes);
+			error = dmu_read_uio_dbuf(sa_get_db(zp->z_sa_hdl),
+			    uio, bytes);
 		}
 
 		len -= bytes;
@@ -437,7 +441,6 @@ zfs_read(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 {
 	znode_t		*zp = ITOZ(ip);
 	zfs_sb_t	*zsb = ITOZSB(ip);
-	objset_t	*os;
 	ssize_t		n, nbytes;
 	int		error = 0;
 	rl_t		*rl;
@@ -447,7 +450,6 @@ zfs_read(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 
 	ZFS_ENTER(zsb);
 	ZFS_VERIFY_ZP(zp);
-	os = zsb->z_os;
 
 	if (zp->z_pflags & ZFS_AV_QUARANTINED) {
 		ZFS_EXIT(zsb);
@@ -468,15 +470,6 @@ zfs_read(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 	if (uio->uio_resid == 0) {
 		ZFS_EXIT(zsb);
 		return (0);
-	}
-
-	/*
-	 * Check for mandatory locks
-	 */
-	if (mandatory_lock(ip) &&
-	    !lock_may_read(ip, uio->uio_loffset, uio->uio_resid)) {
-		ZFS_EXIT(zsb);
-		return (SET_ERROR(EAGAIN));
 	}
 
 	/*
@@ -537,10 +530,12 @@ zfs_read(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 		nbytes = MIN(n, zfs_read_chunk_size -
 		    P2PHASE(uio->uio_loffset, zfs_read_chunk_size));
 
-		if (zp->z_is_mapped && !(ioflag & O_DIRECT))
+		if (zp->z_is_mapped && !(ioflag & O_DIRECT)) {
 			error = mappedread(ip, nbytes, uio);
-		else
-			error = dmu_read_uio(os, zp->z_id, uio, nbytes);
+		} else {
+			error = dmu_read_uio_dbuf(sa_get_db(zp->z_sa_hdl),
+			    uio, nbytes);
+		}
 
 		if (error) {
 			/* convert checksum errors into IO errors */
@@ -597,10 +592,10 @@ zfs_write(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 	int		max_blksz = zsb->z_max_blksz;
 	int		error = 0;
 	arc_buf_t	*abuf;
-	iovec_t		*aiov = NULL;
+	const iovec_t	*aiov = NULL;
 	xuio_t		*xuio = NULL;
 	int		i_iov = 0;
-	iovec_t		*iovp = uio->uio_iov;
+	const iovec_t	*iovp = uio->uio_iov;
 	int		write_eof;
 	int		count = 0;
 	sa_bulk_attr_t	bulk[4];
@@ -645,15 +640,6 @@ zfs_write(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 	if (woff < 0) {
 		ZFS_EXIT(zsb);
 		return (SET_ERROR(EINVAL));
-	}
-
-	/*
-	 * Check for mandatory locks before calling zfs_range_lock()
-	 * in order to prevent a deadlock with locks set via fcntl().
-	 */
-	if (mandatory_lock(ip) && !lock_may_write(ip, woff, n)) {
-		ZFS_EXIT(zsb);
-		return (SET_ERROR(EAGAIN));
 	}
 
 	/*
@@ -729,6 +715,7 @@ zfs_write(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 
 		if (xuio && abuf == NULL) {
 			ASSERT(i_iov < iovcnt);
+			ASSERT3U(uio->uio_segflg, !=, UIO_BVEC);
 			aiov = &iovp[i_iov];
 			abuf = dmu_xuio_arcbuf(xuio, i_iov);
 			dmu_xuio_clear(xuio, i_iov);
@@ -786,8 +773,14 @@ zfs_write(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 			uint64_t new_blksz;
 
 			if (zp->z_blksz > max_blksz) {
+				/*
+				 * File's blocksize is already larger than the
+				 * "recordsize" property.  Only let it grow to
+				 * the next power of 2.
+				 */
 				ASSERT(!ISP2(zp->z_blksz));
-				new_blksz = MIN(end_size, SPA_MAXBLOCKSIZE);
+				new_blksz = MIN(end_size,
+				    1 << highbit64(zp->z_blksz));
 			} else {
 				new_blksz = MIN(end_size, max_blksz);
 			}
@@ -906,6 +899,7 @@ zfs_write(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 			uio_prefaultpages(MIN(n, max_blksz), uio);
 	}
 
+	zfs_inode_update(zp);
 	zfs_range_unlock(rl);
 
 	/*
@@ -921,18 +915,22 @@ zfs_write(struct inode *ip, uio_t *uio, int ioflag, cred_t *cr)
 	    zsb->z_os->os_sync == ZFS_SYNC_ALWAYS)
 		zil_commit(zilog, zp->z_id);
 
-	zfs_inode_update(zp);
 	ZFS_EXIT(zsb);
 	return (0);
 }
 EXPORT_SYMBOL(zfs_write);
 
-static void
-iput_async(struct inode *ip, taskq_t *taskq)
+void
+zfs_iput_async(struct inode *ip)
 {
+	objset_t *os = ITOZSB(ip)->z_os;
+
 	ASSERT(atomic_read(&ip->i_count) > 0);
+	ASSERT(os != NULL);
+
 	if (atomic_read(&ip->i_count) == 1)
-		taskq_dispatch(taskq, (task_func_t *)iput, ip, TQ_PUSHPAGE);
+		taskq_dispatch(dsl_pool_iput_taskq(dmu_objset_pool(os)),
+		    (task_func_t *)iput, ip, TQ_SLEEP);
 	else
 		iput(ip);
 }
@@ -941,7 +939,6 @@ void
 zfs_get_done(zgd_t *zgd, int error)
 {
 	znode_t *zp = zgd->zgd_private;
-	objset_t *os = ZTOZSB(zp)->z_os;
 
 	if (zgd->zgd_db)
 		dmu_buf_rele(zgd->zgd_db, zgd);
@@ -952,7 +949,7 @@ zfs_get_done(zgd_t *zgd, int error)
 	 * Release the vnode asynchronously as we currently have the
 	 * txg stopped from syncing.
 	 */
-	iput_async(ZTOI(zp), dsl_pool_iput_taskq(dmu_objset_pool(os)));
+	zfs_iput_async(ZTOI(zp));
 
 	if (error == 0 && zgd->zgd_bp)
 		zil_add_block(zgd->zgd_zilog, zgd->zgd_bp);
@@ -994,11 +991,11 @@ zfs_get_data(void *arg, lr_write_t *lr, char *buf, zio_t *zio)
 		 * Release the vnode asynchronously as we currently have the
 		 * txg stopped from syncing.
 		 */
-		iput_async(ZTOI(zp), dsl_pool_iput_taskq(dmu_objset_pool(os)));
+		zfs_iput_async(ZTOI(zp));
 		return (SET_ERROR(ENOENT));
 	}
 
-	zgd = (zgd_t *)kmem_zalloc(sizeof (zgd_t), KM_PUSHPAGE);
+	zgd = (zgd_t *)kmem_zalloc(sizeof (zgd_t), KM_SLEEP);
 	zgd->zgd_zilog = zsb->z_log;
 	zgd->zgd_private = zp;
 
@@ -2167,6 +2164,8 @@ zfs_fsync(struct inode *ip, int syncflag, cred_t *cr)
 		zil_commit(zsb->z_log, zp->z_id);
 		ZFS_EXIT(zsb);
 	}
+	tsd_set(zfs_fsyncer_key, NULL);
+
 	return (0);
 }
 EXPORT_SYMBOL(zfs_fsync);
@@ -2560,8 +2559,6 @@ top:
 		err = zfs_zaccess(zp, ACE_WRITE_DATA, 0, skipaclchk, cr);
 		if (err)
 			goto out3;
-
-		truncate_setsize(ip, vap->va_size);
 
 		/*
 		 * XXX - Note, we are not providing any open
@@ -3878,6 +3875,7 @@ zfs_putpage(struct inode *ip, struct page *pp, struct writeback_control *wbc)
 	uint64_t	mtime[2], ctime[2];
 	sa_bulk_attr_t	bulk[3];
 	int		cnt = 0;
+	struct address_space *mapping;
 
 	ZFS_ENTER(zsb);
 	ZFS_VERIFY_ZP(zp);
@@ -3912,16 +3910,77 @@ zfs_putpage(struct inode *ip, struct page *pp, struct writeback_control *wbc)
 	}
 #endif
 
-	set_page_writeback(pp);
+	/*
+	 * The ordering here is critical and must adhere to the following
+	 * rules in order to avoid deadlocking in either zfs_read() or
+	 * zfs_free_range() due to a lock inversion.
+	 *
+	 * 1) The page must be unlocked prior to acquiring the range lock.
+	 *    This is critical because zfs_read() calls find_lock_page()
+	 *    which may block on the page lock while holding the range lock.
+	 *
+	 * 2) Before setting or clearing write back on a page the range lock
+	 *    must be held in order to prevent a lock inversion with the
+	 *    zfs_free_range() function.
+	 *
+	 * This presents a problem because upon entering this function the
+	 * page lock is already held.  To safely acquire the range lock the
+	 * page lock must be dropped.  This creates a window where another
+	 * process could truncate, invalidate, dirty, or write out the page.
+	 *
+	 * Therefore, after successfully reacquiring the range and page locks
+	 * the current page state is checked.  In the common case everything
+	 * will be as is expected and it can be written out.  However, if
+	 * the page state has changed it must be handled accordingly.
+	 */
+	mapping = pp->mapping;
+	redirty_page_for_writepage(wbc, pp);
 	unlock_page(pp);
 
 	rl = zfs_range_lock(zp, pgoff, pglen, RL_WRITER);
+	lock_page(pp);
+
+	/* Page mapping changed or it was no longer dirty, we're done */
+	if (unlikely((mapping != pp->mapping) || !PageDirty(pp))) {
+		unlock_page(pp);
+		zfs_range_unlock(rl);
+		ZFS_EXIT(zsb);
+		return (0);
+	}
+
+	/* Another process started write block if required */
+	if (PageWriteback(pp)) {
+		unlock_page(pp);
+		zfs_range_unlock(rl);
+
+		if (wbc->sync_mode != WB_SYNC_NONE)
+			wait_on_page_writeback(pp);
+
+		ZFS_EXIT(zsb);
+		return (0);
+	}
+
+	/* Clear the dirty flag the required locks are held */
+	if (!clear_page_dirty_for_io(pp)) {
+		unlock_page(pp);
+		zfs_range_unlock(rl);
+		ZFS_EXIT(zsb);
+		return (0);
+	}
+
+	/*
+	 * Counterpart for redirty_page_for_writepage() above.  This page
+	 * was in fact not skipped and should not be counted as if it were.
+	 */
+	wbc->pages_skipped--;
+	set_page_writeback(pp);
+	unlock_page(pp);
+
 	tx = dmu_tx_create(zsb->z_os);
-
 	dmu_tx_hold_write(tx, zp->z_id, pgoff, pglen);
-
 	dmu_tx_hold_sa(tx, zp->z_sa_hdl, B_FALSE);
 	zfs_sa_upgrade_txholds(tx, zp);
+
 	err = dmu_tx_assign(tx, TXG_NOWAIT);
 	if (err != 0) {
 		if (err == ERESTART)
@@ -3965,7 +4024,8 @@ zfs_putpage(struct inode *ip, struct page *pp, struct writeback_control *wbc)
 		 * writepages() normally handles the entire commit for
 		 * performance reasons.
 		 */
-		zil_commit(zsb->z_log, zp->z_id);
+		if (zsb->z_log != NULL)
+			zil_commit(zsb->z_log, zp->z_id);
 	}
 
 	ZFS_EXIT(zsb);
@@ -3986,6 +4046,9 @@ zfs_dirty_inode(struct inode *ip, int flags)
 	sa_bulk_attr_t	bulk[4];
 	int		error;
 	int		cnt = 0;
+
+	if (zfs_is_readonly(zsb) || dmu_objset_is_snapshot(zsb->z_os))
+		return (0);
 
 	ZFS_ENTER(zsb);
 	ZFS_VERIFY_ZP(zp);

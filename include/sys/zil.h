@@ -37,6 +37,9 @@
 extern "C" {
 #endif
 
+struct dsl_pool;
+struct dsl_dataset;
+
 /*
  * Intent log format:
  *
@@ -90,7 +93,6 @@ typedef struct zil_chain {
 } zil_chain_t;
 
 #define	ZIL_MIN_BLKSZ	4096ULL
-#define	ZIL_MAX_BLKSZ	SPA_MAXBLOCKSIZE
 
 /*
  * The words of a log block checksum.
@@ -459,7 +461,6 @@ extern void	zil_replay(objset_t *os, void *arg,
 extern boolean_t zil_replaying(zilog_t *zilog, dmu_tx_t *tx);
 extern void	zil_destroy(zilog_t *zilog, boolean_t keep_first);
 extern void	zil_destroy_sync(zilog_t *zilog, dmu_tx_t *tx);
-extern void	zil_rollback_destroy(zilog_t *zilog, dmu_tx_t *tx);
 
 extern itx_t	*zil_itx_create(uint64_t txtype, size_t lrsize);
 extern void	zil_itx_destroy(itx_t *itx);
@@ -468,8 +469,10 @@ extern void	zil_itx_assign(zilog_t *zilog, itx_t *itx, dmu_tx_t *tx);
 extern void	zil_commit(zilog_t *zilog, uint64_t oid);
 
 extern int	zil_vdev_offline(const char *osname, void *txarg);
-extern int	zil_claim(const char *osname, void *txarg);
-extern int	zil_check_log_chain(const char *osname, void *txarg);
+extern int	zil_claim(struct dsl_pool *dp,
+    struct dsl_dataset *ds, void *txarg);
+extern int 	zil_check_log_chain(struct dsl_pool *dp,
+    struct dsl_dataset *ds, void *tx);
 extern void	zil_sync(zilog_t *zilog, dmu_tx_t *tx);
 extern void	zil_clean(zilog_t *zilog, uint64_t synced_txg);
 

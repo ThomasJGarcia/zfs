@@ -20,8 +20,9 @@
  */
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2013 by Delphix. All rights reserved.
+ * Copyright (c) 2012, 2015 by Delphix. All rights reserved.
  * Copyright (c) 2013 by Saso Kiselkov. All rights reserved.
+ * Copyright (c) 2014 Spectra Logic Corporation, All rights reserved.
  */
 
 #ifndef	_SYS_DBUF_H
@@ -66,8 +67,13 @@ extern "C" {
  *		|			 |
  *		|			 |
  *		+--------> NOFILL -------+
+ *
+ * DB_SEARCH is an invalid state for a dbuf. It is used by dbuf_free_range
+ * to find all dbufs in a range of a dnode and must be less than any other
+ * dbuf_states_t (see comment on dn_dbufs in dnode.h).
  */
 typedef enum dbuf_states {
+	DB_SEARCH = -1,
 	DB_UNCACHED,
 	DB_FILL,
 	DB_NOFILL,
@@ -217,14 +223,12 @@ typedef struct dmu_buf_impl {
 	 * Our link on the owner dnodes's dn_dbufs list.
 	 * Protected by its dn_dbufs_mtx.
 	 */
-	list_node_t db_link;
+	avl_node_t db_link;
 
 	/* Data which is unique to data (leaf) blocks: */
 
-	/* stuff we store for the user (see dmu_buf_set_user) */
-	void *db_user_ptr;
-	void **db_user_data_ptr_ptr;
-	dmu_buf_evict_func_t *db_evict_func;
+	/* User callback information. */
+	dmu_buf_user_t *db_user;
 
 	uint8_t db_immediate_evict;
 	uint8_t db_freed_in_flight;
@@ -233,7 +237,7 @@ typedef struct dmu_buf_impl {
 } dmu_buf_impl_t;
 
 /* Note: the dbuf hash table is exposed only for the mdb module */
-#define	DBUF_MUTEXES 256
+#define	DBUF_MUTEXES 8192
 #define	DBUF_HASH_MUTEX(h, idx) (&(h)->hash_mutexes[(idx) & (DBUF_MUTEXES-1)])
 typedef struct dbuf_hash_table {
 	uint64_t hash_table_mask;
@@ -258,28 +262,32 @@ int dbuf_hold_impl(struct dnode *dn, uint8_t level, uint64_t blkid, int create,
 void dbuf_prefetch(struct dnode *dn, uint64_t blkid, zio_priority_t prio);
 
 void dbuf_add_ref(dmu_buf_impl_t *db, void *tag);
+boolean_t dbuf_try_add_ref(dmu_buf_t *db, objset_t *os, uint64_t obj,
+    uint64_t blkid, void *tag);
 uint64_t dbuf_refcount(dmu_buf_impl_t *db);
 
 void dbuf_rele(dmu_buf_impl_t *db, void *tag);
 void dbuf_rele_and_unlock(dmu_buf_impl_t *db, void *tag);
 
-dmu_buf_impl_t *dbuf_find(struct dnode *dn, uint8_t level, uint64_t blkid);
+dmu_buf_impl_t *dbuf_find(struct objset *os, uint64_t object, uint8_t level,
+    uint64_t blkid);
 
 int dbuf_read(dmu_buf_impl_t *db, zio_t *zio, uint32_t flags);
-void dbuf_will_dirty(dmu_buf_impl_t *db, dmu_tx_t *tx);
-void dbuf_fill_done(dmu_buf_impl_t *db, dmu_tx_t *tx);
 void dmu_buf_will_not_fill(dmu_buf_t *db, dmu_tx_t *tx);
 void dmu_buf_will_fill(dmu_buf_t *db, dmu_tx_t *tx);
 void dmu_buf_fill_done(dmu_buf_t *db, dmu_tx_t *tx);
 void dbuf_assign_arcbuf(dmu_buf_impl_t *db, arc_buf_t *buf, dmu_tx_t *tx);
 dbuf_dirty_record_t *dbuf_dirty(dmu_buf_impl_t *db, dmu_tx_t *tx);
 arc_buf_t *dbuf_loan_arcbuf(dmu_buf_impl_t *db);
+void dmu_buf_write_embedded(dmu_buf_t *dbuf, void *data,
+    bp_embedded_type_t etype, enum zio_compress comp,
+    int uncompressed_size, int compressed_size, int byteorder, dmu_tx_t *tx);
 
 void dbuf_clear(dmu_buf_impl_t *db);
 void dbuf_evict(dmu_buf_impl_t *db);
 
 void dbuf_unoverride(dbuf_dirty_record_t *dr);
-void dbuf_sync_list(list_t *list, dmu_tx_t *tx);
+void dbuf_sync_list(list_t *list, int level, dmu_tx_t *tx);
 void dbuf_release_bp(dmu_buf_impl_t *db);
 
 void dbuf_free_range(struct dnode *dn, uint64_t start, uint64_t end,
@@ -295,20 +303,6 @@ void dbuf_stats_destroy(void);
 #define	DB_DNODE_ENTER(_db)	(zrl_add(&DB_DNODE_LOCK(_db)))
 #define	DB_DNODE_EXIT(_db)	(zrl_remove(&DB_DNODE_LOCK(_db)))
 #define	DB_DNODE_HELD(_db)	(!zrl_is_zero(&DB_DNODE_LOCK(_db)))
-#define	DB_GET_SPA(_spa_p, _db) {		\
-	dnode_t *__dn;				\
-	DB_DNODE_ENTER(_db);			\
-	__dn = DB_DNODE(_db);			\
-	*(_spa_p) = __dn->dn_objset->os_spa;	\
-	DB_DNODE_EXIT(_db);			\
-}
-#define	DB_GET_OBJSET(_os_p, _db) {		\
-	dnode_t *__dn;				\
-	DB_DNODE_ENTER(_db);			\
-	__dn = DB_DNODE(_db);			\
-	*(_os_p) = __dn->dn_objset;		\
-	DB_DNODE_EXIT(_db);			\
-}
 
 void dbuf_init(void);
 void dbuf_fini(void);
@@ -355,13 +349,13 @@ boolean_t dbuf_is_metadata(dmu_buf_impl_t *db);
 	} \
 _NOTE(CONSTCOND) } while (0)
 
-#define	dprintf_dbuf_bp(db, bp, fmt, ...) do {				\
-	if (zfs_flags & ZFS_DEBUG_DPRINTF) {				\
-	char *__blkbuf = kmem_alloc(BP_SPRINTF_LEN, KM_PUSHPAGE);	\
-	sprintf_blkptr(__blkbuf, bp);					\
-	dprintf_dbuf(db, fmt " %s\n", __VA_ARGS__, __blkbuf);		\
-	kmem_free(__blkbuf, BP_SPRINTF_LEN);				\
-	}								\
+#define	dprintf_dbuf_bp(db, bp, fmt, ...) do {			\
+	if (zfs_flags & ZFS_DEBUG_DPRINTF) {			\
+	char *__blkbuf = kmem_alloc(BP_SPRINTF_LEN, KM_SLEEP);	\
+	snprintf_blkptr(__blkbuf, BP_SPRINTF_LEN, bp);		\
+	dprintf_dbuf(db, fmt " %s\n", __VA_ARGS__, __blkbuf);	\
+	kmem_free(__blkbuf, BP_SPRINTF_LEN);			\
+	}							\
 _NOTE(CONSTCOND) } while (0)
 
 #define	DBUF_VERIFY(db)	dbuf_verify(db)

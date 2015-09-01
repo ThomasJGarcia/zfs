@@ -204,6 +204,18 @@ efi_get_info(int fd, struct dk_cinfo *dki_info)
 		rval = sscanf(dev_path, "/dev/%[a-zA-Z]%hu",
 		    dki_info->dki_dname,
 		    &dki_info->dki_partition);
+	} else if ((strncmp(dev_path, "/dev/xvd", 8) == 0)) {
+		strcpy(dki_info->dki_cname, "xvd");
+		dki_info->dki_ctype = DKC_MD;
+		rval = sscanf(dev_path, "/dev/%[a-zA-Z]%hu",
+		    dki_info->dki_dname,
+		    &dki_info->dki_partition);
+	} else if ((strncmp(dev_path, "/dev/zd", 7) == 0)) {
+		strcpy(dki_info->dki_cname, "zd");
+		dki_info->dki_ctype = DKC_MD;
+		rval = sscanf(dev_path, "/dev/%[a-zA-Z]%hu",
+		    dki_info->dki_dname,
+		    &dki_info->dki_partition);
 	} else if ((strncmp(dev_path, "/dev/dm-", 8) == 0)) {
 		strcpy(dki_info->dki_cname, "pseudo");
 		dki_info->dki_ctype = DKC_VBD;
@@ -506,16 +518,17 @@ int
 efi_rescan(int fd)
 {
 #if defined(__linux__)
-	int retry = 5;
+	int retry = 10;
 	int error;
 
 	/* Notify the kernel a devices partition table has been updated */
 	while ((error = ioctl(fd, BLKRRPART)) != 0) {
-		if (--retry == 0) {
+		if ((--retry == 0) || (errno != EBUSY)) {
 			(void) fprintf(stderr, "the kernel failed to rescan "
 			    "the partition table: %d\n", errno);
 			return (-1);
 		}
+		usleep(50000);
 	}
 #endif
 
@@ -860,11 +873,11 @@ write_pmbr(int fd, struct dk_gpt *vtoc)
 	/* LINTED -- always longlong aligned */
 	dk_ioc.dki_data = (efi_gpt_t *)buf;
 	if (efi_ioctl(fd, DKIOCGETEFI, &dk_ioc) == -1) {
-		(void *) memcpy(&mb, buf, sizeof (mb));
+		(void) memcpy(&mb, buf, sizeof (mb));
 		bzero(&mb, sizeof (mb));
 		mb.signature = LE_16(MBB_MAGIC);
 	} else {
-		(void *) memcpy(&mb, buf, sizeof (mb));
+		(void) memcpy(&mb, buf, sizeof (mb));
 		if (mb.signature != LE_16(MBB_MAGIC)) {
 			bzero(&mb, sizeof (mb));
 			mb.signature = LE_16(MBB_MAGIC);
@@ -904,7 +917,7 @@ write_pmbr(int fd, struct dk_gpt *vtoc)
 		*cp++ = 0xff;
 	}
 
-	(void *) memcpy(buf, &mb, sizeof (mb));
+	(void) memcpy(buf, &mb, sizeof (mb));
 	/* LINTED -- always longlong aligned */
 	dk_ioc.dki_data = (efi_gpt_t *)buf;
 	dk_ioc.dki_lba = 0;
