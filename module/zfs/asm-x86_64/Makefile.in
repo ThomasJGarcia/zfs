@@ -1,3 +1,4 @@
+CCASFLAGS += -g
 $(MODULE)-objs += asm-x86_64/sha256-ssse3-asm.o
 $(MODULE)-objs += asm-x86_64/sha256-avx-asm.o
 $(MODULE)-objs += asm-x86_64/sha256-avx2-asm.o
