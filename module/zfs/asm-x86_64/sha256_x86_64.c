@@ -5,12 +5,6 @@
 #include <sys/sha256.h>
 
 void sha256_transform_ssse3(const void *, uint32_t *, uint64_t);
-#ifdef CONFIG_AS_AVX
-void sha256_transform_avx(const void *, uint32_t *, uint64_t);
-#endif
-#ifdef CONFIG_AS_AVX2
-void sha256_transform_rorx(const void *, uint32_t *, uint64_t);
-#endif
 
 static void (*sha256_transform_asm)(const void *, uint32_t *, uint64_t);
 
@@ -44,15 +38,6 @@ arch_sha256_init(void)
 
 	if (cpu_has_ssse3)
 		sha256_transform_asm = sha256_transform_ssse3;
-#ifdef CONFIG_AS_AVX
-	if (avx_usable()) {
-		sha256_transform_asm = sha256_transform_avx;
-#ifdef CONFIG_AS_AVX2
-		if (cpu_has_avx2 && boot_cpu_has(X86_FEATURE_BMI2))
-			sha256_transform_asm = sha256_transform_rorx;
-#endif
-	}
-#endif
 
 	if (sha256_transform_asm)
 		sha256_transform = arch_sha256_transform;
