@@ -40,6 +40,7 @@
 #include <sys/dsl_dataset.h>
 #include <sys/dsl_prop.h>
 #include <sys/zap.h>
+#include <sys/zfeature.h>
 #include <sys/zil_impl.h>
 #include <sys/zio.h>
 #include <sys/zfs_rlock.h>
@@ -380,8 +381,31 @@ out:
  * Sanity check volume block size.
  */
 int
-zvol_check_volblocksize(uint64_t volblocksize)
+zvol_check_volblocksize(const char *name, uint64_t volblocksize)
 {
+	/* Record sizes above 128k need the feature to be enabled */
+	if (volblocksize > SPA_OLD_MAXBLOCKSIZE) {
+		spa_t *spa;
+		int error;
+
+		if ((error = spa_open(name, &spa, FTAG)) != 0)
+			return (error);
+
+		if (!spa_feature_is_enabled(spa, SPA_FEATURE_LARGE_BLOCKS)) {
+			spa_close(spa, FTAG);
+			return (SET_ERROR(ENOTSUP));
+		}
+
+		/*
+		 * We don't allow setting the property above 1MB,
+		 * unless the tunable has been changed.
+		 */
+		if (volblocksize > zfs_max_recordsize)
+			return (SET_ERROR(EDOM));
+
+		spa_close(spa, FTAG);
+	}
+
 	if (volblocksize < SPA_MINBLOCKSIZE ||
 	    volblocksize > SPA_MAXBLOCKSIZE ||
 	    !ISP2(volblocksize))
@@ -764,7 +788,7 @@ zvol_request(struct request_queue *q)
 			continue;
 		}
 
-		switch (rq_data_dir(req)) {
+		switch ((int)rq_data_dir(req)) {
 		case READ:
 			zvol_dispatch(zvol_read, req);
 			break;
@@ -1389,7 +1413,7 @@ __zvol_create_minor(const char *name, boolean_t ignore_snapdev)
 
 	set_capacity(zv->zv_disk, zv->zv_volsize >> 9);
 
-	blk_queue_max_hw_sectors(zv->zv_queue, DMU_MAX_ACCESS / 512);
+	blk_queue_max_hw_sectors(zv->zv_queue, (DMU_MAX_ACCESS / 4) >> 9);
 	blk_queue_max_segments(zv->zv_queue, UINT16_MAX);
 	blk_queue_max_segment_size(zv->zv_queue, UINT_MAX);
 	blk_queue_physical_block_size(zv->zv_queue, zv->zv_volblocksize);
@@ -1624,6 +1648,7 @@ zvol_set_snapdev(const char *dsname, uint64_t snapdev) {
 int
 zvol_init(void)
 {
+	int threads = MIN(MAX(zvol_threads, 1), 1024);
 	int error;
 
 	list_create(&zvol_state_list, sizeof (zvol_state_t),
@@ -1631,8 +1656,8 @@ zvol_init(void)
 
 	mutex_init(&zvol_state_lock, NULL, MUTEX_DEFAULT, NULL);
 
-	zvol_taskq = taskq_create(ZVOL_DRIVER, zvol_threads, maxclsyspri,
-	    zvol_threads, INT_MAX, TASKQ_PREPOPULATE);
+	zvol_taskq = taskq_create(ZVOL_DRIVER, threads, maxclsyspri,
+	    threads * 2, INT_MAX, TASKQ_PREPOPULATE | TASKQ_DYNAMIC);
 	if (zvol_taskq == NULL) {
 		printk(KERN_INFO "ZFS: taskq_create() failed\n");
 		error = -ENOMEM;
@@ -1677,7 +1702,7 @@ module_param(zvol_major, uint, 0444);
 MODULE_PARM_DESC(zvol_major, "Major number for zvol device");
 
 module_param(zvol_threads, uint, 0444);
-MODULE_PARM_DESC(zvol_threads, "Number of threads for zvol device");
+MODULE_PARM_DESC(zvol_threads, "Max number of threads to handle I/O requests");
 
 module_param(zvol_max_discard_blocks, ulong, 0444);
 MODULE_PARM_DESC(zvol_max_discard_blocks, "Max number of blocks to discard");
