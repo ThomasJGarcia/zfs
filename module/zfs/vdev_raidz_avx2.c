@@ -46,165 +46,165 @@
 
 #if defined(__x86_64__) && defined(_KERNEL) && defined(CONFIG_AS_AVX2)
 #define	MAKE_CST32_AVX2		\
-	asm volatile("vmovd %[cast], %%xmm7\n" \
-                 "vpbroadcastd %%xmm7, %%ymm7\n" \
-                : \
-                : [cast] "r" (0x1d1d1d1d));
+asm volatile("vmovd %[cast], %%xmm7\n" \
+				"vpbroadcastd %%xmm7, %%ymm7\n" \
+			: \
+			: [cast] "r" (0x1d1d1d1d));
 
 #define	COPY16P_AVX2						\
-    asm volatile("vmovdqa (%[src]), %%ymm0\n" \
-                 "vmovdqa 32(%[src]), %%ymm1\n" \
-                 "vmovdqa 64(%[src]), %%ymm2\n" \
-                 "vmovdqa 96(%[src]), %%ymm3\n" \
-                 "vmovdqa %%ymm0, (%[p])\n" \
-                 "vmovdqa %%ymm1, 32(%[p])\n" \
-                 "vmovdqa %%ymm2, 64(%[p])\n" \
-                 "vmovdqa %%ymm3, 96(%[p])\n" \
-            : \
-            : [src] "r" (src), [p] "r" (p)); 
+asm volatile("vmovdqa (%[src]), %%ymm0\n" \
+				"vmovdqa 32(%[src]), %%ymm1\n" \
+				"vmovdqa 64(%[src]), %%ymm2\n" \
+				"vmovdqa 96(%[src]), %%ymm3\n" \
+				"vmovdqa %%ymm0, (%[p])\n" \
+				"vmovdqa %%ymm1, 32(%[p])\n" \
+				"vmovdqa %%ymm2, 64(%[p])\n" \
+				"vmovdqa %%ymm3, 96(%[p])\n" \
+		: \
+		: [src] "r" (src), [p] "r" (p));
 
 #define	COPY16PQ_AVX2						\
-    asm volatile("vmovdqa (%[src]), %%ymm0\n" \
-                 "vmovdqa 32(%[src]), %%ymm1\n" \
-                 "vmovdqa 64(%[src]), %%ymm2\n" \
-                 "vmovdqa 96(%[src]), %%ymm3\n" \
-                 "vmovdqa %%ymm0, (%[p])\n" \
-                 "vmovdqa %%ymm1, 32(%[p])\n" \
-                 "vmovdqa %%ymm2, 64(%[p])\n" \
-                 "vmovdqa %%ymm3, 96(%[p])\n" \
-                 "vmovdqa %%ymm0, (%[q])\n" \
-                 "vmovdqa %%ymm1, 32(%[q])\n" \
-                 "vmovdqa %%ymm2, 64(%[q])\n" \
-                 "vmovdqa %%ymm3, 96(%[q])\n" \
-            : \
-            : [src] "r" (src), [p] "r" (p), [q] "r" (q)); 
+asm volatile("vmovdqa (%[src]), %%ymm0\n" \
+				"vmovdqa 32(%[src]), %%ymm1\n" \
+				"vmovdqa 64(%[src]), %%ymm2\n" \
+				"vmovdqa 96(%[src]), %%ymm3\n" \
+				"vmovdqa %%ymm0, (%[p])\n" \
+				"vmovdqa %%ymm1, 32(%[p])\n" \
+				"vmovdqa %%ymm2, 64(%[p])\n" \
+				"vmovdqa %%ymm3, 96(%[p])\n" \
+				"vmovdqa %%ymm0, (%[q])\n" \
+				"vmovdqa %%ymm1, 32(%[q])\n" \
+				"vmovdqa %%ymm2, 64(%[q])\n" \
+				"vmovdqa %%ymm3, 96(%[q])\n" \
+		: \
+		: [src] "r" (src), [p] "r" (p), [q] "r" (q));
 
 #define	COPY16PQR_AVX2						\
-    asm volatile("vmovdqa (%[src]), %%ymm0\n" \
-                 "vmovdqa 32(%[src]), %%ymm1\n" \
-                 "vmovdqa 64(%[src]), %%ymm2\n" \
-                 "vmovdqa 96(%[src]), %%ymm3\n" \
-                 "vmovdqa %%ymm0, (%[p])\n" \
-                 "vmovdqa %%ymm1, 32(%[p])\n" \
-                 "vmovdqa %%ymm2, 64(%[p])\n" \
-                 "vmovdqa %%ymm3, 96(%[p])\n" \
-                 "vmovdqa %%ymm0, (%[q])\n" \
-                 "vmovdqa %%ymm1, 32(%[q])\n" \
-                 "vmovdqa %%ymm2, 64(%[q])\n" \
-                 "vmovdqa %%ymm3, 96(%[q])\n" \
-                 "vmovdqa %%ymm0, (%[r])\n" \
-                 "vmovdqa %%ymm1, 32(%[r])\n" \
-                 "vmovdqa %%ymm2, 64(%[r])\n" \
-                 "vmovdqa %%ymm3, 96(%[r])\n" \
-            : \
-            : [src] "r" (src), [p] "r" (p), [q] "r" (q), [r] "r" (r)); 
+asm volatile("vmovdqa (%[src]), %%ymm0\n" \
+				"vmovdqa 32(%[src]), %%ymm1\n" \
+				"vmovdqa 64(%[src]), %%ymm2\n" \
+				"vmovdqa 96(%[src]), %%ymm3\n" \
+				"vmovdqa %%ymm0, (%[p])\n" \
+				"vmovdqa %%ymm1, 32(%[p])\n" \
+				"vmovdqa %%ymm2, 64(%[p])\n" \
+				"vmovdqa %%ymm3, 96(%[p])\n" \
+				"vmovdqa %%ymm0, (%[q])\n" \
+				"vmovdqa %%ymm1, 32(%[q])\n" \
+				"vmovdqa %%ymm2, 64(%[q])\n" \
+				"vmovdqa %%ymm3, 96(%[q])\n" \
+				"vmovdqa %%ymm0, (%[r])\n" \
+				"vmovdqa %%ymm1, 32(%[r])\n" \
+				"vmovdqa %%ymm2, 64(%[r])\n" \
+				"vmovdqa %%ymm3, 96(%[r])\n" \
+		: \
+		: [src] "r" (src), [p] "r" (p), [q] "r" (q), [r] "r" (r));
 
 #define	LOAD16_SRC_AVX2						\
-    asm volatile("vmovdqa (%[src]), %%ymm0\n" \
-                 "vmovdqa 32(%[src]), %%ymm4\n" \
-                 "vmovdqa 64(%[src]), %%ymm8\n" \
-                 "vmovdqa 96(%[src]), %%ymm12\n" \
-            : \
-            : [src] "r" (src)); 
+asm volatile("vmovdqa (%[src]), %%ymm0\n" \
+				"vmovdqa 32(%[src]), %%ymm4\n" \
+				"vmovdqa 64(%[src]), %%ymm8\n" \
+				"vmovdqa 96(%[src]), %%ymm12\n" \
+		: \
+		: [src] "r" (src));
 
 #define	COMPUTE16_P_AVX2					\
-    asm volatile("vmovdqa (%[p]), %%ymm1\n" \
-                 "vmovdqa 32(%[p]), %%ymm5\n" \
-                 "vmovdqa 64(%[p]), %%ymm9\n" \
-                 "vmovdqa 96(%[p]), %%ymm13\n" \
-                 "vpxor %%ymm0, %%ymm1, %%ymm1\n" \
-                 "vpxor %%ymm4, %%ymm5, %%ymm5\n" \
-                 "vpxor %%ymm8, %%ymm9, %%ymm9\n" \
-                 "vpxor %%ymm12, %%ymm13, %%ymm13\n" \
-                 "vmovdqa %%ymm1, (%[p])\n" \
-                 "vmovdqa %%ymm5, 32(%[p])\n" \
-                 "vmovdqa %%ymm9, 64(%[p])\n" \
-                 "vmovdqa %%ymm13, 96(%[p])\n" \
-            : \
-            : [p] "r" (p)); 
+asm volatile("vmovdqa (%[p]), %%ymm1\n" \
+				"vmovdqa 32(%[p]), %%ymm5\n" \
+				"vmovdqa 64(%[p]), %%ymm9\n" \
+				"vmovdqa 96(%[p]), %%ymm13\n" \
+				"vpxor %%ymm0, %%ymm1, %%ymm1\n" \
+				"vpxor %%ymm4, %%ymm5, %%ymm5\n" \
+				"vpxor %%ymm8, %%ymm9, %%ymm9\n" \
+				"vpxor %%ymm12, %%ymm13, %%ymm13\n" \
+				"vmovdqa %%ymm1, (%[p])\n" \
+				"vmovdqa %%ymm5, 32(%[p])\n" \
+				"vmovdqa %%ymm9, 64(%[p])\n" \
+				"vmovdqa %%ymm13, 96(%[p])\n" \
+		: \
+		: [p] "r" (p));
 
 #define	COMPUTE16_Q_AVX2						\
-    asm volatile("vmovdqa (%[q]), %%ymm1\n" \
-                 "vmovdqa 32(%[q]), %%ymm5\n" \
-                 "vmovdqa 64(%[q]), %%ymm9\n" \
-                 "vmovdqa 96(%[q]), %%ymm13\n" \
-                 "vpxor %%ymm14, %%ymm14, %%ymm14\n" \
-                 "vpcmpgtb %%ymm1, %%ymm14, %%ymm2\n" \
-                 "vpcmpgtb %%ymm5, %%ymm14, %%ymm6\n" \
-                 "vpcmpgtb %%ymm9, %%ymm14, %%ymm10\n" \
-                 "vpcmpgtb %%ymm13, %%ymm14, %%ymm14\n" \
-                 "vpaddb %%ymm1, %%ymm1, %%ymm1\n" \
-                 "vpaddb %%ymm5, %%ymm5, %%ymm5\n" \
-                 "vpaddb %%ymm9, %%ymm9, %%ymm9\n" \
-                 "vpaddb %%ymm13, %%ymm13, %%ymm13\n" \
-                 "vpand %%ymm7, %%ymm2, %%ymm2\n" \
-                 "vpand %%ymm7, %%ymm6, %%ymm6\n" \
-                 "vpand %%ymm7, %%ymm10, %%ymm10\n" \
-                 "vpand %%ymm7, %%ymm14, %%ymm14\n" \
-                 "vpxor %%ymm2, %%ymm1, %%ymm1\n" \
-                 "vpxor %%ymm6, %%ymm5, %%ymm5\n" \
-                 "vpxor %%ymm10, %%ymm9, %%ymm9\n" \
-                 "vpxor %%ymm14, %%ymm13, %%ymm13\n" \
-                 "vpxor %%ymm0, %%ymm1, %%ymm1\n" \
-                 "vpxor %%ymm4, %%ymm5, %%ymm5\n" \
-                 "vpxor %%ymm8, %%ymm9, %%ymm9\n" \
-                 "vpxor %%ymm12, %%ymm13, %%ymm13\n" \
-                 "vmovdqa %%ymm1, (%[q])\n" \
-                 "vmovdqa %%ymm5, 32(%[q])\n" \
-                 "vmovdqa %%ymm9, 64(%[q])\n" \
-                 "vmovdqa %%ymm13, 96(%[q])\n" \
-            : \
-            : [q] "r" (q)); 
+asm volatile("vmovdqa (%[q]), %%ymm1\n" \
+				"vmovdqa 32(%[q]), %%ymm5\n" \
+				"vmovdqa 64(%[q]), %%ymm9\n" \
+				"vmovdqa 96(%[q]), %%ymm13\n" \
+				"vpxor %%ymm14, %%ymm14, %%ymm14\n" \
+				"vpcmpgtb %%ymm1, %%ymm14, %%ymm2\n" \
+				"vpcmpgtb %%ymm5, %%ymm14, %%ymm6\n" \
+				"vpcmpgtb %%ymm9, %%ymm14, %%ymm10\n" \
+				"vpcmpgtb %%ymm13, %%ymm14, %%ymm14\n" \
+				"vpaddb %%ymm1, %%ymm1, %%ymm1\n" \
+				"vpaddb %%ymm5, %%ymm5, %%ymm5\n" \
+				"vpaddb %%ymm9, %%ymm9, %%ymm9\n" \
+				"vpaddb %%ymm13, %%ymm13, %%ymm13\n" \
+				"vpand %%ymm7, %%ymm2, %%ymm2\n" \
+				"vpand %%ymm7, %%ymm6, %%ymm6\n" \
+				"vpand %%ymm7, %%ymm10, %%ymm10\n" \
+				"vpand %%ymm7, %%ymm14, %%ymm14\n" \
+				"vpxor %%ymm2, %%ymm1, %%ymm1\n" \
+				"vpxor %%ymm6, %%ymm5, %%ymm5\n" \
+				"vpxor %%ymm10, %%ymm9, %%ymm9\n" \
+				"vpxor %%ymm14, %%ymm13, %%ymm13\n" \
+				"vpxor %%ymm0, %%ymm1, %%ymm1\n" \
+				"vpxor %%ymm4, %%ymm5, %%ymm5\n" \
+				"vpxor %%ymm8, %%ymm9, %%ymm9\n" \
+				"vpxor %%ymm12, %%ymm13, %%ymm13\n" \
+				"vmovdqa %%ymm1, (%[q])\n" \
+				"vmovdqa %%ymm5, 32(%[q])\n" \
+				"vmovdqa %%ymm9, 64(%[q])\n" \
+				"vmovdqa %%ymm13, 96(%[q])\n" \
+		: \
+		: [q] "r" (q));
 
 #define	COMPUTE16_R_AVX2						\
-    asm volatile("vmovdqa (%[r]), %%ymm1\n" \
-                 "vmovdqa 32(%[r]), %%ymm5\n" \
-                 "vmovdqa 64(%[r]), %%ymm9\n" \
-                 "vmovdqa 96(%[r]), %%ymm13\n" \
-                 "vpxor %%ymm14, %%ymm14, %%ymm14\n" \
-                 "vpcmpgtb %%ymm1, %%ymm14, %%ymm2\n" \
-                 "vpcmpgtb %%ymm5, %%ymm14, %%ymm6\n" \
-                 "vpcmpgtb %%ymm9, %%ymm14, %%ymm10\n" \
-                 "vpcmpgtb %%ymm13, %%ymm14, %%ymm14\n" \
-                 "vpaddb %%ymm1, %%ymm1, %%ymm1\n" \
-                 "vpaddb %%ymm5, %%ymm5, %%ymm5\n" \
-                 "vpaddb %%ymm9, %%ymm9, %%ymm9\n" \
-                 "vpaddb %%ymm13, %%ymm13, %%ymm13\n" \
-                 "vpand %%ymm7, %%ymm2, %%ymm2\n" \
-                 "vpand %%ymm7, %%ymm6, %%ymm6\n" \
-                 "vpand %%ymm7, %%ymm10, %%ymm10\n" \
-                 "vpand %%ymm7, %%ymm14, %%ymm14\n" \
-                 "vpxor %%ymm2, %%ymm1, %%ymm1\n" \
-                 "vpxor %%ymm6, %%ymm5, %%ymm5\n" \
-                 "vpxor %%ymm10, %%ymm9, %%ymm9\n" \
-                 "vpxor %%ymm14, %%ymm13, %%ymm13\n" \
-                 "vpxor %%ymm14, %%ymm14, %%ymm14\n" \
-                 "vpcmpgtb %%ymm1, %%ymm14, %%ymm2\n" \
-                 "vpcmpgtb %%ymm5, %%ymm14, %%ymm6\n" \
-                 "vpcmpgtb %%ymm9, %%ymm14, %%ymm10\n" \
-                 "vpcmpgtb %%ymm13, %%ymm14, %%ymm14\n" \
-                 "vpaddb %%ymm1, %%ymm1, %%ymm1\n" \
-                 "vpaddb %%ymm5, %%ymm5, %%ymm5\n" \
-                 "vpaddb %%ymm9, %%ymm9, %%ymm9\n" \
-                 "vpaddb %%ymm13, %%ymm13, %%ymm13\n" \
-                 "vpand %%ymm7, %%ymm2, %%ymm2\n" \
-                 "vpand %%ymm7, %%ymm6, %%ymm6\n" \
-                 "vpand %%ymm7, %%ymm10, %%ymm10\n" \
-                 "vpand %%ymm7, %%ymm14, %%ymm14\n" \
-                 "vpxor %%ymm2, %%ymm1, %%ymm1\n" \
-                 "vpxor %%ymm6, %%ymm5, %%ymm5\n" \
-                 "vpxor %%ymm10, %%ymm9, %%ymm9\n" \
-                 "vpxor %%ymm14, %%ymm13, %%ymm13\n" \
-                 "vpxor %%ymm0, %%ymm1, %%ymm1\n" \
-                 "vpxor %%ymm4, %%ymm5, %%ymm5\n" \
-                 "vpxor %%ymm8, %%ymm9, %%ymm9\n" \
-                 "vpxor %%ymm12, %%ymm13, %%ymm13\n" \
-                 "vmovdqa %%ymm1, (%[r])\n" \
-                 "vmovdqa %%ymm5, 32(%[r])\n" \
-                 "vmovdqa %%ymm9, 64(%[r])\n" \
-                 "vmovdqa %%ymm13, 96(%[r])\n" \
-            : \
-            : [r] "r" (r)); 
+asm volatile("vmovdqa (%[r]), %%ymm1\n" \
+				"vmovdqa 32(%[r]), %%ymm5\n" \
+				"vmovdqa 64(%[r]), %%ymm9\n" \
+				"vmovdqa 96(%[r]), %%ymm13\n" \
+				"vpxor %%ymm14, %%ymm14, %%ymm14\n" \
+				"vpcmpgtb %%ymm1, %%ymm14, %%ymm2\n" \
+				"vpcmpgtb %%ymm5, %%ymm14, %%ymm6\n" \
+				"vpcmpgtb %%ymm9, %%ymm14, %%ymm10\n" \
+				"vpcmpgtb %%ymm13, %%ymm14, %%ymm14\n" \
+				"vpaddb %%ymm1, %%ymm1, %%ymm1\n" \
+				"vpaddb %%ymm5, %%ymm5, %%ymm5\n" \
+				"vpaddb %%ymm9, %%ymm9, %%ymm9\n" \
+				"vpaddb %%ymm13, %%ymm13, %%ymm13\n" \
+				"vpand %%ymm7, %%ymm2, %%ymm2\n" \
+				"vpand %%ymm7, %%ymm6, %%ymm6\n" \
+				"vpand %%ymm7, %%ymm10, %%ymm10\n" \
+				"vpand %%ymm7, %%ymm14, %%ymm14\n" \
+				"vpxor %%ymm2, %%ymm1, %%ymm1\n" \
+				"vpxor %%ymm6, %%ymm5, %%ymm5\n" \
+				"vpxor %%ymm10, %%ymm9, %%ymm9\n" \
+				"vpxor %%ymm14, %%ymm13, %%ymm13\n" \
+				"vpxor %%ymm14, %%ymm14, %%ymm14\n" \
+				"vpcmpgtb %%ymm1, %%ymm14, %%ymm2\n" \
+				"vpcmpgtb %%ymm5, %%ymm14, %%ymm6\n" \
+				"vpcmpgtb %%ymm9, %%ymm14, %%ymm10\n" \
+				"vpcmpgtb %%ymm13, %%ymm14, %%ymm14\n" \
+				"vpaddb %%ymm1, %%ymm1, %%ymm1\n" \
+				"vpaddb %%ymm5, %%ymm5, %%ymm5\n" \
+				"vpaddb %%ymm9, %%ymm9, %%ymm9\n" \
+				"vpaddb %%ymm13, %%ymm13, %%ymm13\n" \
+				"vpand %%ymm7, %%ymm2, %%ymm2\n" \
+				"vpand %%ymm7, %%ymm6, %%ymm6\n" \
+				"vpand %%ymm7, %%ymm10, %%ymm10\n" \
+				"vpand %%ymm7, %%ymm14, %%ymm14\n" \
+				"vpxor %%ymm2, %%ymm1, %%ymm1\n" \
+				"vpxor %%ymm6, %%ymm5, %%ymm5\n" \
+				"vpxor %%ymm10, %%ymm9, %%ymm9\n" \
+				"vpxor %%ymm14, %%ymm13, %%ymm13\n" \
+				"vpxor %%ymm0, %%ymm1, %%ymm1\n" \
+				"vpxor %%ymm4, %%ymm5, %%ymm5\n" \
+				"vpxor %%ymm8, %%ymm9, %%ymm9\n" \
+				"vpxor %%ymm12, %%ymm13, %%ymm13\n" \
+				"vmovdqa %%ymm1, (%[r])\n" \
+				"vmovdqa %%ymm5, 32(%[r])\n" \
+				"vmovdqa %%ymm9, 64(%[r])\n" \
+				"vmovdqa %%ymm13, 96(%[r])\n" \
+		: \
+		: [r] "r" (r));
 
 void
 vdev_raidz_generate_parity_p_avx2(raidz_map_t *rm)
@@ -253,9 +253,9 @@ vdev_raidz_generate_parity_pq_avx2(raidz_map_t *rm)
 
 	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
-	    rm->rm_col[VDEV_RAIDZ_Q].rc_size);
+		rm->rm_col[VDEV_RAIDZ_Q].rc_size);
 	kfpu_begin();
-    MAKE_CST32_AVX2;
+	MAKE_CST32_AVX2;
 	for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
 		src = rm->rm_col[c].rc_data;
 		p = rm->rm_col[VDEV_RAIDZ_P].rc_data;
@@ -321,11 +321,11 @@ vdev_raidz_generate_parity_pqr_avx2(raidz_map_t *rm)
 
 	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
-	    rm->rm_col[VDEV_RAIDZ_Q].rc_size);
+		rm->rm_col[VDEV_RAIDZ_Q].rc_size);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
-	    rm->rm_col[VDEV_RAIDZ_R].rc_size);
+		rm->rm_col[VDEV_RAIDZ_R].rc_size);
 	kfpu_begin();
-    MAKE_CST32_AVX2;
+	MAKE_CST32_AVX2;
 	for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
 		src = rm->rm_col[c].rc_data;
 		p = rm->rm_col[VDEV_RAIDZ_P].rc_data;

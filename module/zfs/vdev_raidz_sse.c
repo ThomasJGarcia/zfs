@@ -46,174 +46,174 @@
 
 #if defined(__x86_64__)
 #define	MAKE_CST32_SSE			\
-	asm volatile("movd %[cast], %%xmm7\n" \
-                 "pshufd $0, %%xmm7, %%xmm7\n" \
-                : \
-                : [cast] "r" (0x1d1d1d1d));
+asm volatile("movd %[cast], %%xmm7\n" \
+				"pshufd $0, %%xmm7, %%xmm7\n" \
+			: \
+			: [cast] "r" (0x1d1d1d1d));
 
 #define	COPY8P_SSE						\
-    asm volatile("movdqa (%[src]), %%xmm0\n" \
-                 "movdqa 16(%[src]), %%xmm1\n" \
-                 "movdqa 32(%[src]), %%xmm2\n" \
-                 "movdqa 48(%[src]), %%xmm3\n" \
-                 "movdqa %%xmm0, (%[p])\n" \
-                 "movdqa %%xmm1, 16(%[p])\n" \
-                 "movdqa %%xmm2, 32(%[p])\n" \
-                 "movdqa %%xmm3, 48(%[p])\n" \
-            : \
-            : [src] "r" (src), [p] "r" (p)); 
+asm volatile("movdqa (%[src]), %%xmm0\n" \
+				"movdqa 16(%[src]), %%xmm1\n" \
+				"movdqa 32(%[src]), %%xmm2\n" \
+				"movdqa 48(%[src]), %%xmm3\n" \
+				"movdqa %%xmm0, (%[p])\n" \
+				"movdqa %%xmm1, 16(%[p])\n" \
+				"movdqa %%xmm2, 32(%[p])\n" \
+				"movdqa %%xmm3, 48(%[p])\n" \
+		: \
+		: [src] "r" (src), [p] "r" (p));
 
 #define	COPY8PQ_SSE						\
-    asm volatile("movdqa (%[src]), %%xmm0\n" \
-                 "movdqa 16(%[src]), %%xmm1\n" \
-                 "movdqa 32(%[src]), %%xmm2\n" \
-                 "movdqa 48(%[src]), %%xmm3\n" \
-                 "movdqa %%xmm0, (%[p])\n" \
-                 "movdqa %%xmm1, 16(%[p])\n" \
-                 "movdqa %%xmm2, 32(%[p])\n" \
-                 "movdqa %%xmm3, 48(%[p])\n" \
-                 "movdqa %%xmm0, (%[q])\n" \
-                 "movdqa %%xmm1, 16(%[q])\n" \
-                 "movdqa %%xmm2, 32(%[q])\n" \
-                 "movdqa %%xmm3, 48(%[q])\n" \
-            : \
-            : [src] "r" (src), [p] "r" (p), [q] "r" (q)); 
+asm volatile("movdqa (%[src]), %%xmm0\n" \
+				"movdqa 16(%[src]), %%xmm1\n" \
+				"movdqa 32(%[src]), %%xmm2\n" \
+				"movdqa 48(%[src]), %%xmm3\n" \
+				"movdqa %%xmm0, (%[p])\n" \
+				"movdqa %%xmm1, 16(%[p])\n" \
+				"movdqa %%xmm2, 32(%[p])\n" \
+				"movdqa %%xmm3, 48(%[p])\n" \
+				"movdqa %%xmm0, (%[q])\n" \
+				"movdqa %%xmm1, 16(%[q])\n" \
+				"movdqa %%xmm2, 32(%[q])\n" \
+				"movdqa %%xmm3, 48(%[q])\n" \
+		: \
+		: [src] "r" (src), [p] "r" (p), [q] "r" (q));
 
 #define	COPY8PQR_SSE						\
-    asm volatile("movdqa (%[src]), %%xmm0\n" \
-                 "movdqa 16(%[src]), %%xmm1\n" \
-                 "movdqa 32(%[src]), %%xmm2\n" \
-                 "movdqa 48(%[src]), %%xmm3\n" \
-                 "movdqa %%xmm0, (%[p])\n" \
-                 "movdqa %%xmm1, 16(%[p])\n" \
-                 "movdqa %%xmm2, 32(%[p])\n" \
-                 "movdqa %%xmm3, 48(%[p])\n" \
-                 "movdqa %%xmm0, (%[q])\n" \
-                 "movdqa %%xmm1, 16(%[q])\n" \
-                 "movdqa %%xmm2, 32(%[q])\n" \
-                 "movdqa %%xmm3, 48(%[q])\n" \
-                 "movdqa %%xmm0, (%[r])\n" \
-                 "movdqa %%xmm1, 16(%[r])\n" \
-                 "movdqa %%xmm2, 32(%[r])\n" \
-                 "movdqa %%xmm3, 48(%[r])\n" \
-            : \
-            : [src] "r" (src), [p] "r" (p), [q] "r" (q), [r] "r" (r)); 
+asm volatile("movdqa (%[src]), %%xmm0\n" \
+				"movdqa 16(%[src]), %%xmm1\n" \
+				"movdqa 32(%[src]), %%xmm2\n" \
+				"movdqa 48(%[src]), %%xmm3\n" \
+				"movdqa %%xmm0, (%[p])\n" \
+				"movdqa %%xmm1, 16(%[p])\n" \
+				"movdqa %%xmm2, 32(%[p])\n" \
+				"movdqa %%xmm3, 48(%[p])\n" \
+				"movdqa %%xmm0, (%[q])\n" \
+				"movdqa %%xmm1, 16(%[q])\n" \
+				"movdqa %%xmm2, 32(%[q])\n" \
+				"movdqa %%xmm3, 48(%[q])\n" \
+				"movdqa %%xmm0, (%[r])\n" \
+				"movdqa %%xmm1, 16(%[r])\n" \
+				"movdqa %%xmm2, 32(%[r])\n" \
+				"movdqa %%xmm3, 48(%[r])\n" \
+		: \
+		: [src] "r" (src), [p] "r" (p), [q] "r" (q), [r] "r" (r));
 
 #define	LOAD8_SRC_SSE						\
-    asm volatile("movdqa (%[src]), %%xmm0\n" \
-                 "movdqa 16(%[src]), %%xmm4\n" \
-                 "movdqa 32(%[src]), %%xmm8\n" \
-                 "movdqa 48(%[src]), %%xmm12\n" \
-            : \
-            : [src] "r" (src)); 
+asm volatile("movdqa (%[src]), %%xmm0\n" \
+				"movdqa 16(%[src]), %%xmm4\n" \
+				"movdqa 32(%[src]), %%xmm8\n" \
+				"movdqa 48(%[src]), %%xmm12\n" \
+		: \
+		: [src] "r" (src));
 
 #define	COMPUTE8_P_SSE						\
-    asm volatile("movdqa (%[p]), %%xmm1\n" \
-                 "movdqa 16(%[p]), %%xmm5\n" \
-                 "movdqa 32(%[p]), %%xmm9\n" \
-                 "movdqa 48(%[p]), %%xmm13\n" \
-                 "pxor %%xmm0,%%xmm1\n" \
-                 "pxor %%xmm4,%%xmm5\n" \
-                 "pxor %%xmm8,%%xmm9\n" \
-                 "pxor %%xmm12,%%xmm13\n" \
-                 "movdqa %%xmm1, (%[p])\n" \
-                 "movdqa %%xmm5, 16(%[p])\n" \
-                 "movdqa %%xmm9, 32(%[p])\n" \
-                 "movdqa %%xmm13, 48(%[p])\n" \
-            : \
-            : [p] "r" (p)); 
+asm volatile("movdqa (%[p]), %%xmm1\n" \
+				"movdqa 16(%[p]), %%xmm5\n" \
+				"movdqa 32(%[p]), %%xmm9\n" \
+				"movdqa 48(%[p]), %%xmm13\n" \
+				"pxor %%xmm0,%%xmm1\n" \
+				"pxor %%xmm4,%%xmm5\n" \
+				"pxor %%xmm8,%%xmm9\n" \
+				"pxor %%xmm12,%%xmm13\n" \
+				"movdqa %%xmm1, (%[p])\n" \
+				"movdqa %%xmm5, 16(%[p])\n" \
+				"movdqa %%xmm9, 32(%[p])\n" \
+				"movdqa %%xmm13, 48(%[p])\n" \
+		: \
+		: [p] "r" (p));
 
 #define	COMPUTE8_Q_SSE							\
-    asm volatile("movdqa (%[q]), %%xmm1\n" \
-                 "movdqa 16(%[q]), %%xmm5\n" \
-                 "movdqa 32(%[q]), %%xmm9\n" \
-                 "movdqa 48(%[q]), %%xmm13\n" \
-                 "pxor %%xmm2, %%xmm2\n" \
-                 "pxor %%xmm6, %%xmm6\n" \
-                 "pxor %%xmm10, %%xmm10\n" \
-                 "pxor %%xmm14, %%xmm14\n" \
-                 "pcmpgtb %%xmm1, %%xmm2\n" \
-                 "pcmpgtb %%xmm5, %%xmm6\n" \
-                 "pcmpgtb %%xmm9, %%xmm10\n" \
-                 "pcmpgtb %%xmm13, %%xmm14\n" \
-                 "paddb %%xmm1,%%xmm1\n" \
-                 "paddb %%xmm5,%%xmm5\n" \
-                 "paddb %%xmm9,%%xmm9\n" \
-                 "paddb %%xmm13,%%xmm13\n" \
-                 "pand %%xmm7,%%xmm2\n" \
-                 "pand %%xmm7,%%xmm6\n" \
-                 "pand %%xmm7,%%xmm10\n" \
-                 "pand %%xmm7,%%xmm14\n" \
-                 "pxor %%xmm2, %%xmm1\n" \
-                 "pxor %%xmm6, %%xmm5\n" \
-                 "pxor %%xmm10, %%xmm9\n" \
-                 "pxor %%xmm14, %%xmm13\n" \
-                 "pxor %%xmm0,%%xmm1\n" \
-                 "pxor %%xmm4,%%xmm5\n" \
-                 "pxor %%xmm8,%%xmm9\n" \
-                 "pxor %%xmm12,%%xmm13\n" \
-                 "movdqa %%xmm1, (%[q])\n" \
-                 "movdqa %%xmm5, 16(%[q])\n" \
-                 "movdqa %%xmm9, 32(%[q])\n" \
-                 "movdqa %%xmm13, 48(%[q])\n" \
-            : \
-            : [q] "r" (q)); 
+asm volatile("movdqa (%[q]), %%xmm1\n" \
+				"movdqa 16(%[q]), %%xmm5\n" \
+				"movdqa 32(%[q]), %%xmm9\n" \
+				"movdqa 48(%[q]), %%xmm13\n" \
+				"pxor %%xmm2, %%xmm2\n" \
+				"pxor %%xmm6, %%xmm6\n" \
+				"pxor %%xmm10, %%xmm10\n" \
+				"pxor %%xmm14, %%xmm14\n" \
+				"pcmpgtb %%xmm1, %%xmm2\n" \
+				"pcmpgtb %%xmm5, %%xmm6\n" \
+				"pcmpgtb %%xmm9, %%xmm10\n" \
+				"pcmpgtb %%xmm13, %%xmm14\n" \
+				"paddb %%xmm1,%%xmm1\n" \
+				"paddb %%xmm5,%%xmm5\n" \
+				"paddb %%xmm9,%%xmm9\n" \
+				"paddb %%xmm13,%%xmm13\n" \
+				"pand %%xmm7,%%xmm2\n" \
+				"pand %%xmm7,%%xmm6\n" \
+				"pand %%xmm7,%%xmm10\n" \
+				"pand %%xmm7,%%xmm14\n" \
+				"pxor %%xmm2, %%xmm1\n" \
+				"pxor %%xmm6, %%xmm5\n" \
+				"pxor %%xmm10, %%xmm9\n" \
+				"pxor %%xmm14, %%xmm13\n" \
+				"pxor %%xmm0,%%xmm1\n" \
+				"pxor %%xmm4,%%xmm5\n" \
+				"pxor %%xmm8,%%xmm9\n" \
+				"pxor %%xmm12,%%xmm13\n" \
+				"movdqa %%xmm1, (%[q])\n" \
+				"movdqa %%xmm5, 16(%[q])\n" \
+				"movdqa %%xmm9, 32(%[q])\n" \
+				"movdqa %%xmm13, 48(%[q])\n" \
+		: \
+		: [q] "r" (q));
 
 #define	COMPUTE8_R_SSE							\
-    asm volatile("movdqa (%[r]), %%xmm1\n" \
-                 "movdqa 16(%[r]), %%xmm5\n" \
-                 "movdqa 32(%[r]), %%xmm9\n" \
-                 "movdqa 48(%[r]), %%xmm13\n" \
-                 "pxor %%xmm2, %%xmm2\n" \
-                 "pxor %%xmm6, %%xmm6\n" \
-                 "pxor %%xmm10, %%xmm10\n" \
-                 "pxor %%xmm14, %%xmm14\n" \
-                 "pcmpgtb %%xmm1, %%xmm2\n" \
-                 "pcmpgtb %%xmm5, %%xmm6\n" \
-                 "pcmpgtb %%xmm9, %%xmm10\n" \
-                 "pcmpgtb %%xmm13, %%xmm14\n" \
-                 "paddb %%xmm1,%%xmm1\n" \
-                 "paddb %%xmm5,%%xmm5\n" \
-                 "paddb %%xmm9,%%xmm9\n" \
-                 "paddb %%xmm13,%%xmm13\n" \
-                 "pand %%xmm7,%%xmm2\n" \
-                 "pand %%xmm7,%%xmm6\n" \
-                 "pand %%xmm7,%%xmm10\n" \
-                 "pand %%xmm7,%%xmm14\n" \
-                 "pxor %%xmm2, %%xmm1\n" \
-                 "pxor %%xmm6, %%xmm5\n" \
-                 "pxor %%xmm10, %%xmm9\n" \
-                 "pxor %%xmm14, %%xmm13\n" \
-                 "pxor %%xmm2, %%xmm2\n" \
-                 "pxor %%xmm6, %%xmm6\n" \
-                 "pxor %%xmm10, %%xmm10\n" \
-                 "pxor %%xmm14, %%xmm14\n" \
-                 "pcmpgtb %%xmm1, %%xmm2\n" \
-                 "pcmpgtb %%xmm5, %%xmm6\n" \
-                 "pcmpgtb %%xmm9, %%xmm10\n" \
-                 "pcmpgtb %%xmm13, %%xmm14\n" \
-                 "paddb %%xmm1,%%xmm1\n" \
-                 "paddb %%xmm5,%%xmm5\n" \
-                 "paddb %%xmm9,%%xmm9\n" \
-                 "paddb %%xmm13,%%xmm13\n" \
-                 "pand %%xmm7,%%xmm2\n" \
-                 "pand %%xmm7,%%xmm6\n" \
-                 "pand %%xmm7,%%xmm10\n" \
-                 "pand %%xmm7,%%xmm14\n" \
-                 "pxor %%xmm2, %%xmm1\n" \
-                 "pxor %%xmm6, %%xmm5\n" \
-                 "pxor %%xmm10, %%xmm9\n" \
-                 "pxor %%xmm14, %%xmm13\n" \
-                 "pxor %%xmm0,%%xmm1\n" \
-                 "pxor %%xmm4,%%xmm5\n" \
-                 "pxor %%xmm8,%%xmm9\n" \
-                 "pxor %%xmm12,%%xmm13\n" \
-                 "movdqa %%xmm1, (%[r])\n" \
-                 "movdqa %%xmm5, 16(%[r])\n" \
-                 "movdqa %%xmm9, 32(%[r])\n" \
-                 "movdqa %%xmm13, 48(%[r])\n" \
-            : \
-            : [r] "r" (r)); 
+asm volatile("movdqa (%[r]), %%xmm1\n" \
+				"movdqa 16(%[r]), %%xmm5\n" \
+				"movdqa 32(%[r]), %%xmm9\n" \
+				"movdqa 48(%[r]), %%xmm13\n" \
+				"pxor %%xmm2, %%xmm2\n" \
+				"pxor %%xmm6, %%xmm6\n" \
+				"pxor %%xmm10, %%xmm10\n" \
+				"pxor %%xmm14, %%xmm14\n" \
+				"pcmpgtb %%xmm1, %%xmm2\n" \
+				"pcmpgtb %%xmm5, %%xmm6\n" \
+				"pcmpgtb %%xmm9, %%xmm10\n" \
+				"pcmpgtb %%xmm13, %%xmm14\n" \
+				"paddb %%xmm1,%%xmm1\n" \
+				"paddb %%xmm5,%%xmm5\n" \
+				"paddb %%xmm9,%%xmm9\n" \
+				"paddb %%xmm13,%%xmm13\n" \
+				"pand %%xmm7,%%xmm2\n" \
+				"pand %%xmm7,%%xmm6\n" \
+				"pand %%xmm7,%%xmm10\n" \
+				"pand %%xmm7,%%xmm14\n" \
+				"pxor %%xmm2, %%xmm1\n" \
+				"pxor %%xmm6, %%xmm5\n" \
+				"pxor %%xmm10, %%xmm9\n" \
+				"pxor %%xmm14, %%xmm13\n" \
+				"pxor %%xmm2, %%xmm2\n" \
+				"pxor %%xmm6, %%xmm6\n" \
+				"pxor %%xmm10, %%xmm10\n" \
+				"pxor %%xmm14, %%xmm14\n" \
+				"pcmpgtb %%xmm1, %%xmm2\n" \
+				"pcmpgtb %%xmm5, %%xmm6\n" \
+				"pcmpgtb %%xmm9, %%xmm10\n" \
+				"pcmpgtb %%xmm13, %%xmm14\n" \
+				"paddb %%xmm1,%%xmm1\n" \
+				"paddb %%xmm5,%%xmm5\n" \
+				"paddb %%xmm9,%%xmm9\n" \
+				"paddb %%xmm13,%%xmm13\n" \
+				"pand %%xmm7,%%xmm2\n" \
+				"pand %%xmm7,%%xmm6\n" \
+				"pand %%xmm7,%%xmm10\n" \
+				"pand %%xmm7,%%xmm14\n" \
+				"pxor %%xmm2, %%xmm1\n" \
+				"pxor %%xmm6, %%xmm5\n" \
+				"pxor %%xmm10, %%xmm9\n" \
+				"pxor %%xmm14, %%xmm13\n" \
+				"pxor %%xmm0,%%xmm1\n" \
+				"pxor %%xmm4,%%xmm5\n" \
+				"pxor %%xmm8,%%xmm9\n" \
+				"pxor %%xmm12,%%xmm13\n" \
+				"movdqa %%xmm1, (%[r])\n" \
+				"movdqa %%xmm5, 16(%[r])\n" \
+				"movdqa %%xmm9, 32(%[r])\n" \
+				"movdqa %%xmm13, 48(%[r])\n" \
+		: \
+		: [r] "r" (r));
 
 void
 vdev_raidz_generate_parity_p_sse(raidz_map_t *rm)
@@ -262,9 +262,9 @@ vdev_raidz_generate_parity_pq_sse(raidz_map_t *rm)
 
 	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
-	    rm->rm_col[VDEV_RAIDZ_Q].rc_size);
+		rm->rm_col[VDEV_RAIDZ_Q].rc_size);
 	kfpu_begin();
-    MAKE_CST32_SSE;
+	MAKE_CST32_SSE;
 	for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
 		src = rm->rm_col[c].rc_data;
 		p = rm->rm_col[VDEV_RAIDZ_P].rc_data;
@@ -328,11 +328,11 @@ vdev_raidz_generate_parity_pqr_sse(raidz_map_t *rm)
 
 	pcnt = rm->rm_col[VDEV_RAIDZ_P].rc_size / sizeof (src[0]);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
-	    rm->rm_col[VDEV_RAIDZ_Q].rc_size);
+		rm->rm_col[VDEV_RAIDZ_Q].rc_size);
 	ASSERT(rm->rm_col[VDEV_RAIDZ_P].rc_size ==
-	    rm->rm_col[VDEV_RAIDZ_R].rc_size);
+		rm->rm_col[VDEV_RAIDZ_R].rc_size);
 	kfpu_begin();
-    MAKE_CST32_SSE;
+	MAKE_CST32_SSE;
 	for (c = rm->rm_firstdatacol; c < rm->rm_cols; c++) {
 		src = rm->rm_col[c].rc_data;
 		p = rm->rm_col[VDEV_RAIDZ_P].rc_data;
