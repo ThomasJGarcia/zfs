@@ -32,7 +32,7 @@ struct pqr_struct {
 };
 
 struct raidz_parity_calls {
-	int (*vdev_raidz_func)(const void *, uint64_t, void *);
+	int (*vdev_raidz_func)(void *, void *, uint64_t, uint64_t, void *);
 	int  (*valid)(void);	/* Returns 1 if this routine set is usable */
 	const char *name;	/* Name of this routine set */
 };
@@ -65,8 +65,16 @@ struct raidz_parity_calls {
 }
 
 #if defined(_KERNEL) && defined(__x86_64__)
+
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
 #define	kfpu_begin() kernel_fpu_begin()
 #define	kfpu_end() kernel_fpu_end()
+#else
+#define kfpu_begin() preempt_disable(); __kernel_fpu_begin()
+#define kfpu_end() __kernel_fpu_end(); preempt_enable()
+#endif
+
 #else
 #define	kfpu_begin() ((void)0)
 #define	kfpu_end() ((void)0)

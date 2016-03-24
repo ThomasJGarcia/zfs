@@ -26,7 +26,13 @@
  */
 
 #if defined(_KERNEL) && defined(__x86_64__)
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
 #include <asm/i387.h>
+#else
+#include <linux/types.h>
+#include <asm/fpu/api.h>
+#endif
 #include <asm/cpufeature.h>
 #endif
 #include <sys/zfs_context.h>
@@ -164,95 +170,102 @@ static int raidz_parity_have_sse(void) {
 }
 
 int
-vdev_raidz_p_sse(const void *buf, uint64_t size, void *private)
+vdev_raidz_p_sse(void *pbuf, void *sbuf, uint64_t psize, uint64_t csize, void *private)
 {
-	struct pqr_struct *pqr = private;
-	const uint64_t *src = buf;
-	int i, cnt = size / sizeof (src[0]);
+	uint64_t *p = pbuf;
+	const uint64_t *src = sbuf;
+	int i, ccnt;
 
-	ASSERT(pqr->p && !pqr->q && !pqr->r);
-	kfpu_begin();
-	i = 0;
-	for (; i < cnt-7; i += 8, src += 8, pqr->p += 8) {
+	ASSERT(psize >= csize);
+	ccnt = csize / sizeof (src[0]);
+    kfpu_begin();
+	for (i = 0; i < ccnt-7; i += 8, src += 8, p += 8) {
 		LOAD8_SRC_SSE(src);
-		COMPUTE8_P_SSE(pqr->p);
+		COMPUTE8_P_SSE(p);
 	}
-	for (; i < cnt; i++, src++, pqr->p++)
-		*pqr->p ^= *src;
-	kfpu_end();
+    kfpu_end();
+	for (; i < ccnt; i++, src++, p++)
+		*p ^= *src;
 	return (0);
 }
-const struct raidz_parity_calls raidz1_sse = {
+const struct raidz_parity_calls raidz_p_sse = {
 	vdev_raidz_p_sse,
 	raidz_parity_have_sse,
 	"p_sse"
 };
 
 int
-vdev_raidz_pq_sse(const void *buf, uint64_t size, void *private)
+vdev_raidz_q_sse(void *qbuf, void *sbuf, uint64_t qsize, uint64_t csize, void *private)
 {
-	struct pqr_struct *pqr = private;
-	const uint64_t *src = buf;
+	uint64_t *q = qbuf;
+	const uint64_t *src = sbuf;
 	uint64_t mask;
-	int i, cnt = size / sizeof (src[0]);
+	int i, ccnt, qcnt;
 
-	ASSERT(pqr->p && pqr->q && !pqr->r);
+	ASSERT(qsize >= csize);
+	ccnt = csize / sizeof (src[0]);
+	qcnt = qsize / sizeof (src[0]);
+
 	kfpu_begin();
 	MAKE_CST32_SSE;
-	i = 0;
-	for (; i < cnt-7; i += 8, src += 8, pqr->p += 8, pqr->q += 8) {
+	for (i = 0; i < ccnt-7; i += 8, src += 8, q += 8) {
 		LOAD8_SRC_SSE(src);
-		COMPUTE8_P_SSE(pqr->p);
-		COMPUTE8_Q_SSE(pqr->q);
+		COMPUTE8_Q_SSE(q);
 	}
-	for (; i < cnt; i++, src++, pqr->p++, pqr->q++) {
-		*pqr->p ^= *src;
-		VDEV_RAIDZ_64MUL_2(*pqr->q, mask);
-		*pqr->q ^= *src;
+    kfpu_end();
+	for (; i < ccnt; i++, src++, q++) {
+		VDEV_RAIDZ_64MUL_2(*q, mask);
+		*q ^= *src;
 	}
-	kfpu_end();
+	/*
+	 * treat short columns as though they are full of 0s.
+	 */
+	for (; i < qcnt; i++, q++) {
+		VDEV_RAIDZ_64MUL_2(*q, mask);
+	}
 	return (0);
 }
-const struct raidz_parity_calls raidz2_sse = {
-	vdev_raidz_pq_sse,
+const struct raidz_parity_calls raidz_q_sse = {
+	vdev_raidz_q_sse,
 	raidz_parity_have_sse,
-	"pq_sse"
+	"q_sse"
 };
 
 int
-vdev_raidz_pqr_sse(const void *buf, uint64_t size, void *private)
+vdev_raidz_r_sse(void *rbuf, void *sbuf, uint64_t rsize, uint64_t csize, void *private)
 {
-	struct pqr_struct *pqr = private;
-	const uint64_t *src = buf;
+	uint64_t *r = rbuf;
+	const uint64_t *src = sbuf;
 	uint64_t mask;
-	int i, j, cnt = size / sizeof (src[0]);
+	int i, ccnt, rcnt;
 
-	ASSERT(pqr->p && pqr->q && pqr->r);
+	ASSERT(rsize >= csize);
+	ccnt = csize / sizeof (src[0]);
+	rcnt = rsize / sizeof (src[0]);
+
 	kfpu_begin();
 	MAKE_CST32_SSE;
-	i = 0;
-	for (; i < cnt-7; i += 8, src += 8, pqr->p += 8,
-				pqr->q += 8, pqr->r += 8) {
+	for (i = 0; i < ccnt-7; i += 8, src += 8, r += 8) {
 		LOAD8_SRC_SSE(src);
-		COMPUTE8_P_SSE(pqr->p);
-		COMPUTE8_Q_SSE(pqr->q);
-		COMPUTE8_R_SSE(pqr->r);
+		COMPUTE8_R_SSE(r);
 	}
-	for (; i < cnt; i++, src++, pqr->p++, pqr->q++, pqr->r++) {
-		*pqr->p ^= *src;
-		VDEV_RAIDZ_64MUL_2(*pqr->q, mask);
-		*pqr->q ^= *src;
-		VDEV_RAIDZ_64MUL_4(*pqr->r, mask);
-		*pqr->r ^= *src;
+    kfpu_end();
+	for (; i < ccnt; i++, src++, r++) {
+		VDEV_RAIDZ_64MUL_4(*r, mask);
+		*r ^= *src;
 	}
-	kfpu_end();
+	/*
+	 * treat short columns as though they are full of 0s.
+	 */
+	for (; i < rcnt; i++, r++) {
+		VDEV_RAIDZ_64MUL_4(*r, mask);
+	}
 	return (0);
 }
-const struct raidz_parity_calls raidz3_sse = {
-	vdev_raidz_pqr_sse,
+const struct raidz_parity_calls raidz_r_sse = {
+	vdev_raidz_r_sse,
 	raidz_parity_have_sse,
-	"pqr_sse"
+	"r_sse"
 };
-
 
 #endif

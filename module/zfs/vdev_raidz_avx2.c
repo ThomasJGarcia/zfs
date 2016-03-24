@@ -26,7 +26,13 @@
  */
 
 #if defined(_KERNEL) && defined(__x86_64__)
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
 #include <asm/i387.h>
+#else
+#include <linux/types.h>
+#include <asm/fpu/api.h>
+#endif
 #include <asm/cpufeature.h>
 #endif
 #include <sys/zfs_context.h>
@@ -155,95 +161,102 @@ static int raidz_parity_have_avx2(void) {
 }
 
 int
-vdev_raidz_p_avx2(const void *buf, uint64_t size, void *private)
+vdev_raidz_p_avx2(void *pbuf, void *sbuf, uint64_t psize, uint64_t csize, void *private)
 {
-	struct pqr_struct *pqr = private;
-	const uint64_t *src = buf;
-	int i, cnt = size / sizeof (src[0]);
+	uint64_t *p = pbuf;
+	const uint64_t *src = sbuf;
+	int i, ccnt;
 
-	ASSERT(pqr->p && !pqr->q && !pqr->r);
-	kfpu_begin();
-	i = 0;
-	for (; i < cnt-15; i += 16, src += 16, pqr->p += 16) {
+	ASSERT(psize >= csize);
+	ccnt = csize / sizeof (src[0]);
+    kfpu_begin();
+	for (i = 0; i < ccnt-15; i += 16, src += 16, p += 16) {
 		LOAD16_SRC_AVX2(src);
-		COMPUTE16_P_AVX2(pqr->p);
+		COMPUTE16_P_AVX2(p);
 	}
-	for (; i < cnt; i++, src++, pqr->p++)
-		*pqr->p ^= *src;
-	kfpu_end();
+    kfpu_end();
+	for (; i < ccnt; i++, src++, p++)
+		*p ^= *src;
 	return (0);
 }
-const struct raidz_parity_calls raidz1_avx2 = {
+const struct raidz_parity_calls raidz_p_avx2 = {
 	vdev_raidz_p_avx2,
 	raidz_parity_have_avx2,
 	"p_avx2"
 };
 
 int
-vdev_raidz_pq_avx2(const void *buf, uint64_t size, void *private)
+vdev_raidz_q_avx2(void *qbuf, void *sbuf, uint64_t qsize, uint64_t csize, void *private)
 {
-	struct pqr_struct *pqr = private;
-	const uint64_t *src = buf;
+	uint64_t *q = qbuf;
+	const uint64_t *src = sbuf;
 	uint64_t mask;
-	int i, cnt = size / sizeof (src[0]);
+	int i, ccnt, qcnt;
 
-	ASSERT(pqr->p && pqr->q && !pqr->r);
+	ASSERT(qsize >= csize);
+	ccnt = csize / sizeof (src[0]);
+	qcnt = qsize / sizeof (src[0]);
+
 	kfpu_begin();
 	MAKE_CST32_AVX2;
-	i = 0;
-	for (; i < cnt-15; i += 16, src += 16, pqr->p += 16, pqr->q += 16) {
+	for (i = 0; i < ccnt-15; i += 16, src += 16, q += 16) {
 		LOAD16_SRC_AVX2(src);
-		COMPUTE16_P_AVX2(pqr->p);
-		COMPUTE16_Q_AVX2(pqr->q);
+		COMPUTE16_Q_AVX2(q);
 	}
-	for (; i < cnt; i++, src++, pqr->p++, pqr->q++) {
-		*pqr->p ^= *src;
-		VDEV_RAIDZ_64MUL_2(*pqr->q, mask);
-		*pqr->q ^= *src;
+    kfpu_end();
+	for (; i < ccnt; i++, src++, q++) {
+		VDEV_RAIDZ_64MUL_2(*q, mask);
+		*q ^= *src;
 	}
-	kfpu_end();
+	/*
+	 * treat short columns as though they are full of 0s.
+	 */
+	for (; i < qcnt; i++, q++) {
+		VDEV_RAIDZ_64MUL_2(*q, mask);
+	}
 	return (0);
 }
-const struct raidz_parity_calls raidz2_avx2 = {
-	vdev_raidz_pq_avx2,
+const struct raidz_parity_calls raidz_q_avx2 = {
+	vdev_raidz_q_avx2,
 	raidz_parity_have_avx2,
-	"pq_avx2"
+	"q_avx2"
 };
 
 int
-vdev_raidz_pqr_avx2(const void *buf, uint64_t size, void *private)
+vdev_raidz_r_avx2(void *rbuf, void *sbuf, uint64_t rsize, uint64_t csize, void *private)
 {
-	struct pqr_struct *pqr = private;
-	const uint64_t *src = buf;
+	uint64_t *r = rbuf;
+	const uint64_t *src = sbuf;
 	uint64_t mask;
-	int i, cnt = size / sizeof (src[0]);
+	int i, ccnt, rcnt;
 
-	ASSERT(pqr->p && pqr->q && pqr->r);
+	ASSERT(rsize >= csize);
+	ccnt = csize / sizeof (src[0]);
+	rcnt = rsize / sizeof (src[0]);
+
 	kfpu_begin();
 	MAKE_CST32_AVX2;
-	i = 0;
-	for (; i < cnt-15; i += 16, src += 16, pqr->p += 16,
-				pqr->q += 16, pqr->r += 16) {
+	for (i = 0; i < ccnt-15; i += 16, src += 16, r += 16) {
 		LOAD16_SRC_AVX2(src);
-		COMPUTE16_P_AVX2(pqr->p);
-		COMPUTE16_Q_AVX2(pqr->q);
-		COMPUTE16_R_AVX2(pqr->r);
+		COMPUTE16_R_AVX2(r);
 	}
-	for (; i < cnt; i++, src++, pqr->p++, pqr->q++, pqr->r++) {
-		*pqr->p ^= *src;
-		VDEV_RAIDZ_64MUL_2(*pqr->q, mask);
-		*pqr->q ^= *src;
-		VDEV_RAIDZ_64MUL_4(*pqr->r, mask);
-		*pqr->r ^= *src;
+    kfpu_end();
+	for (; i < ccnt; i++, src++, r++) {
+		VDEV_RAIDZ_64MUL_4(*r, mask);
+		*r ^= *src;
 	}
-	kfpu_end();
+	/*
+	 * treat short columns as though they are full of 0s.
+	 */
+	for (; i < rcnt; i++, r++) {
+		VDEV_RAIDZ_64MUL_4(*r, mask);
+	}
 	return (0);
 }
-const struct raidz_parity_calls raidz3_avx2 = {
-	vdev_raidz_pqr_avx2,
+const struct raidz_parity_calls raidz_r_avx2 = {
+	vdev_raidz_r_avx2,
 	raidz_parity_have_avx2,
-	"pqr_avx2"
+	"r_avx2"
 };
-
 
 #endif
