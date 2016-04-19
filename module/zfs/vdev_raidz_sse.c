@@ -27,7 +27,7 @@
 
 #if defined(_KERNEL) && defined(__x86_64__)
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
 #include <asm/i387.h>
 #else
 #include <linux/types.h>
@@ -178,12 +178,12 @@ vdev_raidz_p_sse(void *pbuf, void *sbuf, uint64_t psize, uint64_t csize, void *p
 
 	ASSERT(psize >= csize);
 	ccnt = csize / sizeof (src[0]);
-    kfpu_begin();
+	kfpu_begin();
 	for (i = 0; i < ccnt-7; i += 8, src += 8, p += 8) {
 		LOAD8_SRC_SSE(src);
 		COMPUTE8_P_SSE(p);
 	}
-    kfpu_end();
+	kfpu_end();
 	for (; i < ccnt; i++, src++, p++)
 		*p ^= *src;
 	return (0);
@@ -212,7 +212,7 @@ vdev_raidz_q_sse(void *qbuf, void *sbuf, uint64_t qsize, uint64_t csize, void *p
 		LOAD8_SRC_SSE(src);
 		COMPUTE8_Q_SSE(q);
 	}
-    kfpu_end();
+	kfpu_end();
 	for (; i < ccnt; i++, src++, q++) {
 		VDEV_RAIDZ_64MUL_2(*q, mask);
 		*q ^= *src;
@@ -249,7 +249,7 @@ vdev_raidz_r_sse(void *rbuf, void *sbuf, uint64_t rsize, uint64_t csize, void *p
 		LOAD8_SRC_SSE(src);
 		COMPUTE8_R_SSE(r);
 	}
-    kfpu_end();
+	kfpu_end();
 	for (; i < ccnt; i++, src++, r++) {
 		VDEV_RAIDZ_64MUL_4(*r, mask);
 		*r ^= *src;

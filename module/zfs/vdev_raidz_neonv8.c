@@ -76,10 +76,10 @@
 
 #define	COMPUTE8_P_NEONV8(p)					\
 	LOAD4128(4, 5, 6, 7, p);				\
-	asm volatile("eor v4.16b,v4.16b,v0.16b"  : : : "v4");	\
-	asm volatile("eor v5.16b,v5.16b,v1.16b"  : : : "v5");	\
-	asm volatile("eor v6.16b,v6.16b,v2.16b"  : : : "v6");	\
-	asm volatile("eor v7.16b,v7.16b,v3.16b"  : : : "v7");	\
+	asm volatile("eor v4.16b,v4.16b,v0.16b"	 : : : "v4");	\
+	asm volatile("eor v5.16b,v5.16b,v1.16b"	 : : : "v5");	\
+	asm volatile("eor v6.16b,v6.16b,v2.16b"	 : : : "v6");	\
+	asm volatile("eor v7.16b,v7.16b,v3.16b"	 : : : "v7");	\
 	STORE4128(4, 5, 6, 7, p)
 
 #define	COMPUTE8_Q_NEONV8(q)						\
@@ -96,16 +96,16 @@
 	asm volatile("shl v7.16b,v7.16b,#1" : : : "v7");		\
 	asm volatile("and v8.16b,v8.16b,v12.16b"  : : : "v8");		\
 	asm volatile("and v9.16b,v9.16b,v12.16b"  : : : "v9");		\
-	asm volatile("and v10.16b,v10.16b,v12.16b"  : : : "v10");	\
-	asm volatile("and v11.16b,v11.16b,v12.16b"  : : : "v11");	\
-	asm volatile("eor v4.16b,v4.16b,v8.16b"  : : : "v4");		\
-	asm volatile("eor v5.16b,v5.16b,v9.16b"  : : : "v5");		\
+	asm volatile("and v10.16b,v10.16b,v12.16b"	: : : "v10");	\
+	asm volatile("and v11.16b,v11.16b,v12.16b"	: : : "v11");	\
+	asm volatile("eor v4.16b,v4.16b,v8.16b"	 : : : "v4");		\
+	asm volatile("eor v5.16b,v5.16b,v9.16b"	 : : : "v5");		\
 	asm volatile("eor v6.16b,v6.16b,v10.16b"  : : : "v6");		\
 	asm volatile("eor v7.16b,v7.16b,v11.16b"  : : : "v7");		\
-	asm volatile("eor v4.16b,v4.16b,v0.16b"  : : : "v4");		\
-	asm volatile("eor v5.16b,v5.16b,v1.16b"  : : : "v5");		\
-	asm volatile("eor v6.16b,v6.16b,v2.16b"  : : : "v6");		\
-	asm volatile("eor v7.16b,v7.16b,v3.16b"  : : : "v7");		\
+	asm volatile("eor v4.16b,v4.16b,v0.16b"	 : : : "v4");		\
+	asm volatile("eor v5.16b,v5.16b,v1.16b"	 : : : "v5");		\
+	asm volatile("eor v6.16b,v6.16b,v2.16b"	 : : : "v6");		\
+	asm volatile("eor v7.16b,v7.16b,v3.16b"	 : : : "v7");		\
 	STORE4128(4, 5, 6, 7, q)
 
 
@@ -124,17 +124,17 @@
 		asm volatile("shl v7.16b,v7.16b,#1" : : : "v7");	\
 		asm volatile("and v8.16b,v8.16b,v12.16b"  : : : "v8");	\
 		asm volatile("and v9.16b,v9.16b,v12.16b"  : : : "v9");	\
-		asm volatile("and v10.16b,v10.16b,v12.16b"  : : : "v10"); \
-		asm volatile("and v11.16b,v11.16b,v12.16b"  : : : "v11"); \
-		asm volatile("eor v4.16b,v4.16b,v8.16b"  : : : "v4");	\
-		asm volatile("eor v5.16b,v5.16b,v9.16b"  : : : "v5");	\
+		asm volatile("and v10.16b,v10.16b,v12.16b"	: : : "v10"); \
+		asm volatile("and v11.16b,v11.16b,v12.16b"	: : : "v11"); \
+		asm volatile("eor v4.16b,v4.16b,v8.16b"	 : : : "v4");	\
+		asm volatile("eor v5.16b,v5.16b,v9.16b"	 : : : "v5");	\
 		asm volatile("eor v6.16b,v6.16b,v10.16b"  : : : "v6");	\
 		asm volatile("eor v7.16b,v7.16b,v11.16b"  : : : "v7");	\
 	}								\
-	asm volatile("eor v4.16b,v4.16b,v0.16b"  : : : "v4");		\
-	asm volatile("eor v5.16b,v5.16b,v1.16b"  : : : "v5");		\
-	asm volatile("eor v6.16b,v6.16b,v2.16b"  : : : "v6");		\
-	asm volatile("eor v7.16b,v7.16b,v3.16b"  : : : "v7");		\
+	asm volatile("eor v4.16b,v4.16b,v0.16b"	 : : : "v4");		\
+	asm volatile("eor v5.16b,v5.16b,v1.16b"	 : : : "v5");		\
+	asm volatile("eor v6.16b,v6.16b,v2.16b"	 : : : "v6");		\
+	asm volatile("eor v7.16b,v7.16b,v3.16b"	 : : : "v7");		\
 	STORE4128(4, 5, 6, 7, r)
 
 /* V8DBL */
@@ -146,14 +146,14 @@
 #define	COMPUTE16_P_NEONV8DBL(p)					\
 	LOAD4128(4, 5, 6, 7, p);					\
 	LOAD4128(20, 21, 22, 23, p+8);					\
-	asm volatile("eor v4.16b,v4.16b,v0.16b"  : : : "v4");		\
-	asm volatile("eor v5.16b,v5.16b,v1.16b"  : : : "v5");		\
-	asm volatile("eor v6.16b,v6.16b,v2.16b"  : : : "v6");		\
-	asm volatile("eor v7.16b,v7.16b,v3.16b"  : : : "v7");		\
-	asm volatile("eor v20.16b,v20.16b,v16.16b"  : : : "v20");	\
-	asm volatile("eor v21.16b,v21.16b,v17.16b"  : : : "v21");	\
-	asm volatile("eor v22.16b,v22.16b,v18.16b"  : : : "v22");	\
-	asm volatile("eor v23.16b,v23.16b,v19.16b"  : : : "v23");	\
+	asm volatile("eor v4.16b,v4.16b,v0.16b"	 : : : "v4");		\
+	asm volatile("eor v5.16b,v5.16b,v1.16b"	 : : : "v5");		\
+	asm volatile("eor v6.16b,v6.16b,v2.16b"	 : : : "v6");		\
+	asm volatile("eor v7.16b,v7.16b,v3.16b"	 : : : "v7");		\
+	asm volatile("eor v20.16b,v20.16b,v16.16b"	: : : "v20");	\
+	asm volatile("eor v21.16b,v21.16b,v17.16b"	: : : "v21");	\
+	asm volatile("eor v22.16b,v22.16b,v18.16b"	: : : "v22");	\
+	asm volatile("eor v23.16b,v23.16b,v19.16b"	: : : "v23");	\
 	STORE4128(4, 5, 6, 7, p);					\
 	STORE4128(20, 21, 22, 23, p+8)
 
@@ -180,28 +180,28 @@
 	asm volatile("shl v23.16b,v23.16b,#1" : : : "v23");		\
 	asm volatile("and v8.16b,v8.16b,v12.16b"  : : : "v8");		\
 	asm volatile("and v9.16b,v9.16b,v12.16b"  : : : "v9");		\
-	asm volatile("and v10.16b,v10.16b,v12.16b"  : : : "v10");	\
-	asm volatile("and v11.16b,v11.16b,v12.16b"  : : : "v11");	\
-	asm volatile("and v24.16b,v24.16b,v12.16b"  : : : "v24");	\
-	asm volatile("and v25.16b,v25.16b,v12.16b"  : : : "v25");	\
-	asm volatile("and v26.16b,v26.16b,v12.16b"  : : : "v26");	\
-	asm volatile("and v27.16b,v27.16b,v12.16b"  : : : "v27");	\
-	asm volatile("eor v4.16b,v4.16b,v8.16b"  : : : "v4");		\
-	asm volatile("eor v5.16b,v5.16b,v9.16b"  : : : "v5");		\
+	asm volatile("and v10.16b,v10.16b,v12.16b"	: : : "v10");	\
+	asm volatile("and v11.16b,v11.16b,v12.16b"	: : : "v11");	\
+	asm volatile("and v24.16b,v24.16b,v12.16b"	: : : "v24");	\
+	asm volatile("and v25.16b,v25.16b,v12.16b"	: : : "v25");	\
+	asm volatile("and v26.16b,v26.16b,v12.16b"	: : : "v26");	\
+	asm volatile("and v27.16b,v27.16b,v12.16b"	: : : "v27");	\
+	asm volatile("eor v4.16b,v4.16b,v8.16b"	 : : : "v4");		\
+	asm volatile("eor v5.16b,v5.16b,v9.16b"	 : : : "v5");		\
 	asm volatile("eor v6.16b,v6.16b,v10.16b"  : : : "v6");		\
 	asm volatile("eor v7.16b,v7.16b,v11.16b"  : : : "v7");		\
-	asm volatile("eor v20.16b,v20.16b,v24.16b"  : : : "v20");	\
-	asm volatile("eor v21.16b,v21.16b,v25.16b"  : : : "v21");	\
-	asm volatile("eor v22.16b,v22.16b,v26.16b"  : : : "v22");	\
-	asm volatile("eor v23.16b,v23.16b,v27.16b"  : : : "v23");	\
-	asm volatile("eor v4.16b,v4.16b,v0.16b"  : : : "v4");		\
-	asm volatile("eor v5.16b,v5.16b,v1.16b"  : : : "v5");		\
-	asm volatile("eor v6.16b,v6.16b,v2.16b"  : : : "v6");		\
-	asm volatile("eor v7.16b,v7.16b,v3.16b"  : : : "v7");		\
-	asm volatile("eor v20.16b,v20.16b,v16.16b"  : : : "v20");	\
-	asm volatile("eor v21.16b,v21.16b,v17.16b"  : : : "v21");	\
-	asm volatile("eor v22.16b,v22.16b,v18.16b"  : : : "v22");	\
-	asm volatile("eor v23.16b,v23.16b,v19.16b"  : : : "v23");	\
+	asm volatile("eor v20.16b,v20.16b,v24.16b"	: : : "v20");	\
+	asm volatile("eor v21.16b,v21.16b,v25.16b"	: : : "v21");	\
+	asm volatile("eor v22.16b,v22.16b,v26.16b"	: : : "v22");	\
+	asm volatile("eor v23.16b,v23.16b,v27.16b"	: : : "v23");	\
+	asm volatile("eor v4.16b,v4.16b,v0.16b"	 : : : "v4");		\
+	asm volatile("eor v5.16b,v5.16b,v1.16b"	 : : : "v5");		\
+	asm volatile("eor v6.16b,v6.16b,v2.16b"	 : : : "v6");		\
+	asm volatile("eor v7.16b,v7.16b,v3.16b"	 : : : "v7");		\
+	asm volatile("eor v20.16b,v20.16b,v16.16b"	: : : "v20");	\
+	asm volatile("eor v21.16b,v21.16b,v17.16b"	: : : "v21");	\
+	asm volatile("eor v22.16b,v22.16b,v18.16b"	: : : "v22");	\
+	asm volatile("eor v23.16b,v23.16b,v19.16b"	: : : "v23");	\
 	STORE4128(4, 5, 6, 7, q);					\
 	STORE4128(20, 21, 22, 23, q+8)
 
@@ -229,29 +229,29 @@
 		asm volatile("shl v23.16b,v23.16b,#1" : : : "v23");	\
 		asm volatile("and v8.16b,v8.16b,v12.16b"  : : : "v8");	\
 		asm volatile("and v9.16b,v9.16b,v12.16b"  : : : "v9");	\
-		asm volatile("and v10.16b,v10.16b,v12.16b"  : : : "v10"); \
-		asm volatile("and v11.16b,v11.16b,v12.16b"  : : : "v11"); \
-		asm volatile("and v24.16b,v24.16b,v12.16b"  : : : "v24"); \
-		asm volatile("and v25.16b,v25.16b,v12.16b"  : : : "v25"); \
-		asm volatile("and v26.16b,v26.16b,v12.16b"  : : : "v26"); \
-		asm volatile("and v27.16b,v27.16b,v12.16b"  : : : "v27"); \
-		asm volatile("eor v4.16b,v4.16b,v8.16b"  : : : "v4");	\
-		asm volatile("eor v5.16b,v5.16b,v9.16b"  : : : "v5");	\
+		asm volatile("and v10.16b,v10.16b,v12.16b"	: : : "v10"); \
+		asm volatile("and v11.16b,v11.16b,v12.16b"	: : : "v11"); \
+		asm volatile("and v24.16b,v24.16b,v12.16b"	: : : "v24"); \
+		asm volatile("and v25.16b,v25.16b,v12.16b"	: : : "v25"); \
+		asm volatile("and v26.16b,v26.16b,v12.16b"	: : : "v26"); \
+		asm volatile("and v27.16b,v27.16b,v12.16b"	: : : "v27"); \
+		asm volatile("eor v4.16b,v4.16b,v8.16b"	 : : : "v4");	\
+		asm volatile("eor v5.16b,v5.16b,v9.16b"	 : : : "v5");	\
 		asm volatile("eor v6.16b,v6.16b,v10.16b"  : : : "v6");	\
 		asm volatile("eor v7.16b,v7.16b,v11.16b"  : : : "v7");	\
-		asm volatile("eor v20.16b,v20.16b,v24.16b"  : : : "v20"); \
-		asm volatile("eor v21.16b,v21.16b,v25.16b"  : : : "v21"); \
-		asm volatile("eor v22.16b,v22.16b,v26.16b"  : : : "v22"); \
-		asm volatile("eor v23.16b,v23.16b,v27.16b"  : : : "v23"); \
+		asm volatile("eor v20.16b,v20.16b,v24.16b"	: : : "v20"); \
+		asm volatile("eor v21.16b,v21.16b,v25.16b"	: : : "v21"); \
+		asm volatile("eor v22.16b,v22.16b,v26.16b"	: : : "v22"); \
+		asm volatile("eor v23.16b,v23.16b,v27.16b"	: : : "v23"); \
 	}								\
-	asm volatile("eor v4.16b,v4.16b,v0.16b"  : : : "v4");		\
-	asm volatile("eor v5.16b,v5.16b,v1.16b"  : : : "v5");		\
-	asm volatile("eor v6.16b,v6.16b,v2.16b"  : : : "v6");		\
-	asm volatile("eor v7.16b,v7.16b,v3.16b"  : : : "v7");		\
-	asm volatile("eor v20.16b,v20.16b,v16.16b"  : : : "v20");	\
-	asm volatile("eor v21.16b,v21.16b,v17.16b"  : : : "v21");	\
-	asm volatile("eor v22.16b,v22.16b,v18.16b"  : : : "v22");	\
-	asm volatile("eor v23.16b,v23.16b,v19.16b"  : : : "v23");	\
+	asm volatile("eor v4.16b,v4.16b,v0.16b"	 : : : "v4");		\
+	asm volatile("eor v5.16b,v5.16b,v1.16b"	 : : : "v5");		\
+	asm volatile("eor v6.16b,v6.16b,v2.16b"	 : : : "v6");		\
+	asm volatile("eor v7.16b,v7.16b,v3.16b"	 : : : "v7");		\
+	asm volatile("eor v20.16b,v20.16b,v16.16b"	: : : "v20");	\
+	asm volatile("eor v21.16b,v21.16b,v17.16b"	: : : "v21");	\
+	asm volatile("eor v22.16b,v22.16b,v18.16b"	: : : "v22");	\
+	asm volatile("eor v23.16b,v23.16b,v19.16b"	: : : "v23");	\
 	STORE4128(4, 5, 6, 7, r);					\
 	STORE4128(20, 21, 22, 23, r+8)
 
@@ -285,8 +285,8 @@
 	asm volatile("shl v7.8b,v7.8b,#1" : : : "v7");		\
 	asm volatile("and v8.8b,v8.8b,v12.8b"  : : : "v8");	\
 	asm volatile("and v9.8b,v9.8b,v12.8b"  : : : "v9");	\
-	asm volatile("and v10.8b,v10.8b,v12.8b"  : : : "v10");	\
-	asm volatile("and v11.8b,v11.8b,v12.8b"  : : : "v11");	\
+	asm volatile("and v10.8b,v10.8b,v12.8b"	 : : : "v10");	\
+	asm volatile("and v11.8b,v11.8b,v12.8b"	 : : : "v11");	\
 	asm volatile("eor v4.8b,v4.8b,v8.8b"  : : : "v4");	\
 	asm volatile("eor v5.8b,v5.8b,v9.8b"  : : : "v5");	\
 	asm volatile("eor v6.8b,v6.8b,v10.8b"  : : : "v6");	\
@@ -313,8 +313,8 @@
 		asm volatile("shl v7.8b,v7.8b,#1" : : : "v7");		\
 		asm volatile("and v8.8b,v8.8b,v12.8b"  : : : "v8");	\
 		asm volatile("and v9.8b,v9.8b,v12.8b"  : : : "v9");	\
-		asm volatile("and v10.8b,v10.8b,v12.8b"  : : : "v10");	\
-		asm volatile("and v11.8b,v11.8b,v12.8b"  : : : "v11");	\
+		asm volatile("and v10.8b,v10.8b,v12.8b"	 : : : "v10");	\
+		asm volatile("and v11.8b,v11.8b,v12.8b"	 : : : "v11");	\
 		asm volatile("eor v4.8b,v4.8b,v8.8b"  : : : "v4");	\
 		asm volatile("eor v5.8b,v5.8b,v9.8b"  : : : "v5");	\
 		asm volatile("eor v6.8b,v6.8b,v10.8b"  : : : "v6");	\
@@ -336,16 +336,16 @@
 
 #define	COMPUTE8_P_NEONV8I(p)					\
 	asm volatile("ld1 {v4.4s},%0" : : "Q" (*(p+0)) : "v4");	\
-	asm volatile("eor v4.16b,v4.16b,v0.16b"  : : : "v4");	\
+	asm volatile("eor v4.16b,v4.16b,v0.16b"	 : : : "v4");	\
 	asm volatile("st1 {v4.4s},%0" : "=Q" (*(p+0)));		\
 	asm volatile("ld1 {v5.4s},%0" : : "Q" (*(p+2)) : "v5");	\
-	asm volatile("eor v5.16b,v5.16b,v1.16b"  : : : "v5");	\
+	asm volatile("eor v5.16b,v5.16b,v1.16b"	 : : : "v5");	\
 	asm volatile("st1 {v5.4s},%0" : "=Q" (*(p+2)));		\
 	asm volatile("ld1 {v6.4s},%0" : : "Q" (*(p+4)) : "v6");	\
-	asm volatile("eor v6.16b,v6.16b,v2.16b"  : : : "v6");	\
+	asm volatile("eor v6.16b,v6.16b,v2.16b"	 : : : "v6");	\
 	asm volatile("st1 {v6.4s},%0" : "=Q" (*(p+4)));		\
 	asm volatile("ld1 {v7.4s},%0" : : "Q" (*(p+6)) : "v7");	\
-	asm volatile("eor v7.16b,v7.16b,v3.16b"  : : : "v7");	\
+	asm volatile("eor v7.16b,v7.16b,v3.16b"	 : : : "v7");	\
 	asm volatile("st1 {v7.4s},%0" : "=Q" (*(p+6)))
 
 #define	COMPUTE8_Q_NEONV8I(q)						\
@@ -365,19 +365,19 @@
 	asm volatile("shl v7.16b,v7.16b,#1" : : : "v7");		\
 	asm volatile("and v8.16b,v8.16b,v12.16b"  : : : "v8");		\
 	asm volatile("and v9.16b,v9.16b,v12.16b"  : : : "v9");		\
-	asm volatile("and v10.16b,v10.16b,v12.16b"  : : : "v10");	\
-	asm volatile("and v11.16b,v11.16b,v12.16b"  : : : "v11");	\
-	asm volatile("eor v4.16b,v4.16b,v8.16b"  : : : "v4");		\
-	asm volatile("eor v5.16b,v5.16b,v9.16b"  : : : "v5");		\
+	asm volatile("and v10.16b,v10.16b,v12.16b"	: : : "v10");	\
+	asm volatile("and v11.16b,v11.16b,v12.16b"	: : : "v11");	\
+	asm volatile("eor v4.16b,v4.16b,v8.16b"	 : : : "v4");		\
+	asm volatile("eor v5.16b,v5.16b,v9.16b"	 : : : "v5");		\
 	asm volatile("eor v6.16b,v6.16b,v10.16b"  : : : "v6");		\
 	asm volatile("eor v7.16b,v7.16b,v11.16b"  : : : "v7");		\
-	asm volatile("eor v4.16b,v4.16b,v0.16b"  : : : "v4");		\
+	asm volatile("eor v4.16b,v4.16b,v0.16b"	 : : : "v4");		\
 	asm volatile("st1 {v4.4s},%0" : "=Q" (*(q+0)));			\
-	asm volatile("eor v5.16b,v5.16b,v1.16b"  : : : "v5");		\
+	asm volatile("eor v5.16b,v5.16b,v1.16b"	 : : : "v5");		\
 	asm volatile("st1 {v5.4s},%0" : "=Q" (*(q+2)));			\
-	asm volatile("eor v6.16b,v6.16b,v2.16b"  : : : "v6");		\
+	asm volatile("eor v6.16b,v6.16b,v2.16b"	 : : : "v6");		\
 	asm volatile("st1 {v6.4s},%0" : "=Q" (*(q+4)));			\
-	asm volatile("eor v7.16b,v7.16b,v3.16b"  : : : "v7");		\
+	asm volatile("eor v7.16b,v7.16b,v3.16b"	 : : : "v7");		\
 	asm volatile("st1 {v7.4s},%0" : "=Q" (*(q+6)))
 
 
@@ -396,20 +396,20 @@
 		asm volatile("shl v7.16b,v7.16b,#1" : : : "v7");	\
 		asm volatile("and v8.16b,v8.16b,v12.16b"  : : : "v8");	\
 		asm volatile("and v9.16b,v9.16b,v12.16b"  : : : "v9");	\
-		asm volatile("and v10.16b,v10.16b,v12.16b"  : : : "v10"); \
-		asm volatile("and v11.16b,v11.16b,v12.16b"  : : : "v11"); \
-		asm volatile("eor v4.16b,v4.16b,v8.16b"  : : : "v4");	\
-		asm volatile("eor v5.16b,v5.16b,v9.16b"  : : : "v5");	\
+		asm volatile("and v10.16b,v10.16b,v12.16b"	: : : "v10"); \
+		asm volatile("and v11.16b,v11.16b,v12.16b"	: : : "v11"); \
+		asm volatile("eor v4.16b,v4.16b,v8.16b"	 : : : "v4");	\
+		asm volatile("eor v5.16b,v5.16b,v9.16b"	 : : : "v5");	\
 		asm volatile("eor v6.16b,v6.16b,v10.16b"  : : : "v6");	\
 		asm volatile("eor v7.16b,v7.16b,v11.16b"  : : : "v7");	\
 	}								\
-	asm volatile("eor v4.16b,v4.16b,v0.16b"  : : : "v4");		\
+	asm volatile("eor v4.16b,v4.16b,v0.16b"	 : : : "v4");		\
 	asm volatile("st1 {v4.4s},%0" : "=Q" (*(r+0)));			\
-	asm volatile("eor v5.16b,v5.16b,v1.16b"  : : : "v5");		\
+	asm volatile("eor v5.16b,v5.16b,v1.16b"	 : : : "v5");		\
 	asm volatile("st1 {v5.4s},%0" : "=Q" (*(r+2)));			\
-	asm volatile("eor v6.16b,v6.16b,v2.16b"  : : : "v6");		\
+	asm volatile("eor v6.16b,v6.16b,v2.16b"	 : : : "v6");		\
 	asm volatile("st1 {v6.4s},%0" : "=Q" (*(r+4)));			\
-	asm volatile("eor v7.16b,v7.16b,v3.16b"  : : : "v7");		\
+	asm volatile("eor v7.16b,v7.16b,v3.16b"	 : : : "v7");		\
 	asm volatile("st1 {v7.4s},%0" : "=Q" (*(r+6)))
 
 
@@ -419,74 +419,74 @@ static int raidz_parity_have_neonv8(void) {
 }
 
 
-#define	MAKE_P_FUN(suf, SUF, m, M)                  \
-    int\
-    vdev_raidz_p_##suf(void *pbuf, void *sbuf, uint64_t psize, uint64_t csize, void *private)\
-    {\
-        uint64_t *p = pbuf;\
-        const uint64_t *src = sbuf;\
-        int i, ccnt;\
+#define	MAKE_P_FUN(suf, SUF, m, M)					\
+	int\
+	vdev_raidz_p_##suf(void *pbuf, void *sbuf, uint64_t psize, uint64_t csize, void *private)\
+	{\
+		uint64_t *p = pbuf;\
+		const uint64_t *src = sbuf;\
+		int i, ccnt;\
 \
-        ASSERT(psize >= csize);\
-        ccnt = csize / sizeof (src[0]);\
-        kfpu_begin();\
-        for (i = 0; i < ccnt-m; i += M, src += M, p += M) {\
-            LOAD##M##_SRC_##SUF(src);\
-            COMPUTE##M##_P_##SUF(p);\
-        }\
-        kfpu_end();\
-        for (; i < ccnt; i++, src++, p++)\
-            *p ^= *src\
-        return (0);\
-    }\
-    const struct raidz_parity_calls raidz_p_##suf = {\
-        vdev_raidz_p_##suf,\
-        raidz_parity_have_neonv8,\
-        "p_"##suf\
-    };
+		ASSERT(psize >= csize);\
+		ccnt = csize / sizeof (src[0]);\
+		kfpu_begin();\
+		for (i = 0; i < ccnt-m; i += M, src += M, p += M) {\
+			LOAD##M##_SRC_##SUF(src);\
+			COMPUTE##M##_P_##SUF(p);\
+		}\
+		kfpu_end();\
+		for (; i < ccnt; i++, src++, p++)\
+			*p ^= *src\
+		return (0);\
+	}\
+	const struct raidz_parity_calls raidz_p_##suf = {\
+		vdev_raidz_p_##suf,\
+		raidz_parity_have_neonv8,\
+		"p_"##suf\
+	};
 
 
 
-#define	MAKE_Q_FUN(suf, SUF, m, M)                  \
-    int\
-    vdev_raidz_q_suf(void *qbuf, void *sbuf, uint64_t qsize, uint64_t csize, void *private)\
-    {\
-        uint64_t *q = qbuf;\
-        const uint64_t *src = sbuf;\
-        uint64_t mask;\
-        int i, ccnt, qcnt;\
+#define	MAKE_Q_FUN(suf, SUF, m, M)					\
+	int\
+	vdev_raidz_q_suf(void *qbuf, void *sbuf, uint64_t qsize, uint64_t csize, void *private)\
+	{\
+		uint64_t *q = qbuf;\
+		const uint64_t *src = sbuf;\
+		uint64_t mask;\
+		int i, ccnt, qcnt;\
 \
-        ASSERT(qsize >= csize);\
-        ccnt = csize / sizeof (src[0]);\
-        qcnt = qsize / sizeof (src[0]);\
+		ASSERT(qsize >= csize);\
+		ccnt = csize / sizeof (src[0]);\
+		qcnt = qsize / sizeof (src[0]);\
 \
-        kfpu_begin();\
-        for (i = 0; i < ccnt-m; i += M, src += M, q += M) {\
-            LOAD##M##_SRC_##SUF(src);\
-            COMPUTE##M##_Q_##SUF(q);\
-        }\
-        kfpu_end();\
-        for (; i < ccnt; i++, src++, q++) {\
-            VDEV_RAIDZ_64MUL_2(*q, mask);\
-            *q ^= *src;\
-        }\
-        /*\
-         * treat short columns as though they are full of 0s.\
-         */\
-        for (; i < qcnt; i++, q++) {\
-            VDEV_RAIDZ_64MUL_2(*q, mask);\
-        }\
-        return (0);\
-    }\
-    const struct raidz_parity_calls raidz_q_##suf = {\
-        vdev_raidz_q_##suf,\
-        raidz_parity_have_neonv8,\
-        "q_"##suf\
-    };
+		kfpu_begin();\
+		for (i = 0; i < ccnt-m; i += M, src += M, q += M) {\
+			LOAD##M##_SRC_##SUF(src);\
+			COMPUTE##M##_Q_##SUF(q);\
+		}\
+		kfpu_end();\
+		for (; i < ccnt; i++, src++, q++) {\
+			VDEV_RAIDZ_64MUL_2(*q, mask);\
+			*q ^= *src;\
+		}\
+		/*\
+		 * treat short columns as though they are full of 0s.\
+		 */\
+		for (; i < qcnt; i++, q++) {\
+			VDEV_RAIDZ_64MUL_2(*q, mask);\
+		}\
+		return (0);\
+	}\
+	const struct raidz_parity_calls raidz_q_##suf = {\
+		vdev_raidz_q_##suf,\
+		raidz_parity_have_neonv8,\
+		"q_"##suf\
+	};
 
 
 
-#define	MAKE_R_FUN(suf, SUF, m, M)                  \
+#define	MAKE_R_FUN(suf, SUF, m, M)					\
 int\
 vdev_raidz_r_##suf(void *rbuf, void *sbuf, uint64_t rsize, uint64_t csize, void *private)\
 {\
@@ -504,7 +504,7 @@ vdev_raidz_r_##suf(void *rbuf, void *sbuf, uint64_t rsize, uint64_t csize, void 
 		LOAD##M##_SRC_##SUF(src);\
 		COMPUTE##M##_R_##SUF(r);\
 	}\
-    kfpu_end();\
+	kfpu_end();\
 	for (; i < ccnt; i++, src++, r++) {\
 		VDEV_RAIDZ_64MUL_4(*r, mask);\
 		*r ^= *src;\

@@ -67,12 +67,12 @@ struct raidz_parity_calls {
 #if defined(_KERNEL) && defined(__x86_64__)
 
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
 #define	kfpu_begin() kernel_fpu_begin()
 #define	kfpu_end() kernel_fpu_end()
 #else
-#define kfpu_begin() preempt_disable(); __kernel_fpu_begin()
-#define kfpu_end() __kernel_fpu_end(); preempt_enable()
+#define	kfpu_begin() preempt_disable(); __kernel_fpu_begin()
+#define	kfpu_end() __kernel_fpu_end(); preempt_enable()
 #endif
 
 #else

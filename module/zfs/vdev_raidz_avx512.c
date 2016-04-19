@@ -27,7 +27,7 @@
 
 #if defined(_KERNEL) && defined(__x86_64__)
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,2,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
 #include <asm/i387.h>
 #else
 #include <linux/types.h>
@@ -248,74 +248,74 @@ static int raidz_parity_have_avx512bw(void) {
 }
 
 
-#define	MAKE_P_FUN(suf, SUF, m, M)                  \
-    int\
-    vdev_raidz_p_##suf(void *pbuf, void *sbuf, uint64_t psize, uint64_t csize, void *private)\
-    {\
-        uint64_t *p = pbuf;\
-        const uint64_t *src = sbuf;\
-        int i, ccnt;\
+#define	MAKE_P_FUN(suf, SUF, m, M)					\
+	int\
+	vdev_raidz_p_##suf(void *pbuf, void *sbuf, uint64_t psize, uint64_t csize, void *private)\
+	{\
+		uint64_t *p = pbuf;\
+		const uint64_t *src = sbuf;\
+		int i, ccnt;\
 \
-        ASSERT(psize >= csize);\
-        ccnt = csize / sizeof (src[0]);\
-        kfpu_begin();\
-        for (i = 0; i < ccnt-m; i += M, src += M, p += M) {\
-            LOAD##M##_SRC_##SUF(src);\
-            COMPUTE##M##_P_##SUF(p);\
-        }\
-        kfpu_end();\
-        for (; i < ccnt; i++, src++, p++)\
-            *p ^= *src\
-        return (0);\
-    }\
-    const struct raidz_parity_calls raidz_p_##suf = {\
-        vdev_raidz_p_##suf,\
-        raidz_parity_have_##suf,\
-        "p_"##suf\
-    };
+		ASSERT(psize >= csize);\
+		ccnt = csize / sizeof (src[0]);\
+		kfpu_begin();\
+		for (i = 0; i < ccnt-m; i += M, src += M, p += M) {\
+			LOAD##M##_SRC_##SUF(src);\
+			COMPUTE##M##_P_##SUF(p);\
+		}\
+		kfpu_end();\
+		for (; i < ccnt; i++, src++, p++)\
+			*p ^= *src\
+		return (0);\
+	}\
+	const struct raidz_parity_calls raidz_p_##suf = {\
+		vdev_raidz_p_##suf,\
+		raidz_parity_have_##suf,\
+		"p_"##suf\
+	};
 
 
 
-#define	MAKE_Q_FUN(suf, SUF, m, M)                  \
-    int\
-    vdev_raidz_q_suf(void *qbuf, void *sbuf, uint64_t qsize, uint64_t csize, void *private)\
-    {\
-        uint64_t *q = qbuf;\
-        const uint64_t *src = sbuf;\
-        uint64_t mask;\
-        int i, ccnt, qcnt;\
+#define	MAKE_Q_FUN(suf, SUF, m, M)					\
+	int\
+	vdev_raidz_q_suf(void *qbuf, void *sbuf, uint64_t qsize, uint64_t csize, void *private)\
+	{\
+		uint64_t *q = qbuf;\
+		const uint64_t *src = sbuf;\
+		uint64_t mask;\
+		int i, ccnt, qcnt;\
 \
-        ASSERT(qsize >= csize);\
-        ccnt = csize / sizeof (src[0]);\
-        qcnt = qsize / sizeof (src[0]);\
+		ASSERT(qsize >= csize);\
+		ccnt = csize / sizeof (src[0]);\
+		qcnt = qsize / sizeof (src[0]);\
 \
-        kfpu_begin();\
-        for (i = 0; i < ccnt-m; i += M, src += M, q += M) {\
-            LOAD##M##_SRC_##SUF(src);\
-            COMPUTE##M##_Q_##SUF(q);\
-        }\
-        kfpu_end();\
-        for (; i < ccnt; i++, src++, q++) {\
-            VDEV_RAIDZ_64MUL_2(*q, mask);\
-            *q ^= *src;\
-        }\
-        /*\
-         * treat short columns as though they are full of 0s.\
-         */\
-        for (; i < qcnt; i++, q++) {\
-            VDEV_RAIDZ_64MUL_2(*q, mask);\
-        }\
-        return (0);\
-    }\
-    const struct raidz_parity_calls raidz_q_##suf = {\
-        vdev_raidz_q_##suf,\
-        raidz_parity_have_##suf,\
-        "q_"##suf\
-    };
+		kfpu_begin();\
+		for (i = 0; i < ccnt-m; i += M, src += M, q += M) {\
+			LOAD##M##_SRC_##SUF(src);\
+			COMPUTE##M##_Q_##SUF(q);\
+		}\
+		kfpu_end();\
+		for (; i < ccnt; i++, src++, q++) {\
+			VDEV_RAIDZ_64MUL_2(*q, mask);\
+			*q ^= *src;\
+		}\
+		/*\
+		 * treat short columns as though they are full of 0s.\
+		 */\
+		for (; i < qcnt; i++, q++) {\
+			VDEV_RAIDZ_64MUL_2(*q, mask);\
+		}\
+		return (0);\
+	}\
+	const struct raidz_parity_calls raidz_q_##suf = {\
+		vdev_raidz_q_##suf,\
+		raidz_parity_have_##suf,\
+		"q_"##suf\
+	};
 
 
 
-#define	MAKE_R_FUN(suf, SUF, m, M)                  \
+#define	MAKE_R_FUN(suf, SUF, m, M)					\
 int\
 vdev_raidz_r_##suf(void *rbuf, void *sbuf, uint64_t rsize, uint64_t csize, void *private)\
 {\
@@ -333,7 +333,7 @@ vdev_raidz_r_##suf(void *rbuf, void *sbuf, uint64_t rsize, uint64_t csize, void 
 		LOAD##M##_SRC_##SUF(src);\
 		COMPUTE##M##_R_##SUF(r);\
 	}\
-    kfpu_end();\
+	kfpu_end();\
 	for (; i < ccnt; i++, src++, r++) {\
 		VDEV_RAIDZ_64MUL_4(*r, mask);\
 		*r ^= *src;\
